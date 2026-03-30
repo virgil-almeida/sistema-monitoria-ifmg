@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Meu perfil{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'home' %}">Início</a></li><li class="breadcrumb-item active">Meu perfil</li>{% endblock %}
+{% block h1 %}Meu perfil{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <div><strong>Usuário:</strong> {{ request.user.username }}</div>
+      <div><strong>Nome:</strong> {{ request.user.get_full_name }}</div>
+      <div><strong>Perfil:</strong> {{ request.user.perfil }}</div>
+      <div><strong>E-mail:</strong> {{ request.user.email }}</div>
+    </div>
+  </div>
+{% endblock %}
+

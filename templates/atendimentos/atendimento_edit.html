@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Editar atendimento{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'atendimentos:lista_meus_atendimentos' %}">Meus atendimentos</a></li><li class="breadcrumb-item active">Editar</li>{% endblock %}
+{% block h1 %}Editar atendimento{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-warning">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-group">
+          <label>Disciplina</label>
+          {{ form.disciplina_display }}
+        </div>
+
+        {% if 'aluno' in form.fields %}
+          <hr />
+          <h5 class="mb-3">Aluno</h5>
+          <div class="form-group">
+            <label for="id_aluno">Aluno</label>
+            {{ form.aluno }}
+          </div>
+
+          <div class="alert alert-info">
+            Se quiser cadastrar outro aluno, preencha os campos abaixo.
+          </div>
+          <div class="form-group">
+            <label>Nome (novo)</label>
+            {{ form.novo_aluno_nome }}
+          </div>
+          <div class="form-group">
+            <label>Matrícula (novo)</label>
+            {{ form.novo_aluno_matricula }}
+          </div>
+          <div class="form-group">
+            <label>E-mail (novo, opcional)</label>
+            {{ form.novo_aluno_email }}
+          </div>
+        {% endif %}
+
+        {% if 'numero_participantes' in form.fields %}
+          <hr />
+          <h5 class="mb-3">Grupo</h5>
+          <div class="form-group">
+            <label>Número de participantes</label>
+            {{ form.numero_participantes }}
+          </div>
+        {% endif %}
+
+        <hr />
+        <h5 class="mb-3">Detalhes</h5>
+
+        <div class="form-group">
+          <label>Data e hora</label>
+          {{ form.data_hora }}
+        </div>
+
+        {% if 'duracao_min' in form.fields %}
+          <div class="form-group">
+            <label>Duração (minutos)</label>
+            {{ form.duracao_min }}
+          </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label>Tópico/assunto</label>
+          {{ form.topico }}
+        </div>
+
+        {% if 'observacoes' in form.fields %}
+          <div class="form-group">
+            <label>Observações (opcional)</label>
+            {{ form.observacoes }}
+          </div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a class="btn btn-secondary" href="{% url 'atendimentos:lista_meus_atendimentos' %}">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

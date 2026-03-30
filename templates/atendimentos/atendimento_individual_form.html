@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar atendimento individual{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'atendimentos:lista_meus_atendimentos' %}">Meus atendimentos</a></li><li class="breadcrumb-item active">Individual</li>{% endblock %}
+{% block h1 %}Registrar atendimento individual{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-primary">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-group">
+          <label>Disciplina</label>
+          {{ form.disciplina_display }}
+        </div>
+
+        <hr />
+        <h5 class="mb-3">Aluno</h5>
+
+        <div class="form-group">
+          <label for="id_aluno">Selecionar aluno cadastrado</label>
+          {{ form.aluno }}
+        </div>
+
+        <div class="alert alert-info">
+          Se o aluno não estiver cadastrado, preencha os campos abaixo.
+        </div>
+
+        <div class="form-group">
+          <label for="id_novo_aluno_nome">Nome</label>
+          {{ form.novo_aluno_nome }}
+        </div>
+
+        <div class="form-group">
+          <label for="id_novo_aluno_matricula">Matrícula</label>
+          {{ form.novo_aluno_matricula }}
+        </div>
+
+        <div class="form-group">
+          <label for="id_novo_aluno_email">E-mail (opcional)</label>
+          {{ form.novo_aluno_email }}
+        </div>
+
+        <hr />
+        <h5 class="mb-3">Detalhes do atendimento</h5>
+
+        <div class="form-group">
+          <label for="id_data_hora">Data e hora</label>
+          {{ form.data_hora }}
+          {% for error in form.data_hora.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_duracao_min">Duração (minutos)</label>
+          {{ form.duracao_min }}
+          {% for error in form.duracao_min.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_topico">Tópico/assunto</label>
+          {{ form.topico }}
+          {% for error in form.topico.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_observacoes">Observações (opcional)</label>
+          {{ form.observacoes }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'atendimentos:lista_meus_atendimentos' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

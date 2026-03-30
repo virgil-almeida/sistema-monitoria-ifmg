@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Login{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Login</li>{% endblock %}
+{% block h1 %}Login{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card card-outline card-primary">
+        <div class="card-header text-center">
+          <a href="{% url 'home' %}" class="h1 mb-0">Monitoria IFMG</a>
+        </div>
+        <div class="card-body">
+          {% if form.errors %}
+            <div class="alert alert-danger">
+              Usuário ou senha inválidos.
+            </div>
+          {% endif %}
+
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="id_username">Usuário</label>
+              <input
+                type="text"
+                name="username"
+                autofocus
+                autocomplete="username"
+                class="form-control"
+                required
+                id="id_username"
+              />
+            </div>
+            <div class="form-group">
+              <label for="id_password">Senha</label>
+              <input
+                type="password"
+                name="password"
+                autocomplete="current-password"
+                class="form-control"
+                required
+                id="id_password"
+              />
+            </div>
+            <div class="row">
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+              </div>
+            </div>
+          </form>
+
+          <hr />
+          <div class="text-center">
+            <a href="{% url 'accounts:register' %}">Cadastrar usuário (admin)</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

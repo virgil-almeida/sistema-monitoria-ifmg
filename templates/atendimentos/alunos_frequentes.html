@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Meus alunos{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Meus alunos</li>{% endblock %}
+{% block h1 %}Meus alunos (frequentes){% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-success">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-5">
+          <h5 class="mb-3">Cadastrar aluno</h5>
+          <form method="post" novalidate>
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+
+            <div class="form-group">
+              <label>Nome</label>
+              {{ form.nome }}
+              {% for error in form.nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group">
+              <label>Matrícula</label>
+              {{ form.matricula }}
+              {% for error in form.matricula.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group">
+              <label>E-mail (opcional)</label>
+              {{ form.email }}
+            </div>
+
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </form>
+        </div>
+
+        <div class="col-md-7">
+          <h5 class="mb-3">Lista</h5>
+
+          <form method="get" class="form-inline mb-3">
+            <input
+              class="form-control mr-2"
+              type="search"
+              name="q"
+              value="{{ q }}"
+              placeholder="Buscar por nome ou matrícula"
+            />
+            <button class="btn btn-secondary" type="submit">Buscar</button>
+          </form>
+
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Matrícula</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for aluno in alunos %}
+                  <tr>
+                    <td>{{ aluno.nome }}</td>
+                    <td>{{ aluno.matricula }}</td>
+                    <td>{{ aluno.email|default:"-" }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="3" class="text-center">Nenhum aluno encontrado.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

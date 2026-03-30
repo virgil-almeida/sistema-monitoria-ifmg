@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar tutoria em grupo{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'atendimentos:lista_meus_atendimentos' %}">Meus atendimentos</a></li><li class="breadcrumb-item active">Grupo</li>{% endblock %}
+{% block h1 %}Registrar tutoria em grupo{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-primary">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-group">
+          <label>Disciplina</label>
+          {{ form.disciplina_display }}
+        </div>
+
+        <hr />
+        <h5 class="mb-3">Detalhes</h5>
+
+        <div class="form-group">
+          <label for="id_data_hora">Data e hora</label>
+          {{ form.data_hora }}
+          {% for error in form.data_hora.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_duracao_min">Duração (minutos)</label>
+          {{ form.duracao_min }}
+          {% for error in form.duracao_min.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_numero_participantes">Número de participantes</label>
+          {{ form.numero_participantes }}
+          {% for error in form.numero_participantes.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_topico">Tópicos abordados</label>
+          {{ form.topico }}
+          {% for error in form.topico.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_observacoes">Observações (opcional)</label>
+          {{ form.observacoes }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'atendimentos:lista_meus_atendimentos' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

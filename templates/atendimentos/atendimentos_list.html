@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Meus atendimentos{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Meus atendimentos</li>{% endblock %}
+{% block h1 %}Meus atendimentos{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div class="mb-2">
+          <a href="{% url 'atendimentos:criar_atendimento_individual' %}" class="btn btn-primary mr-2">Registrar individual</a>
+          <a href="{% url 'atendimentos:criar_atendimento_grupo' %}" class="btn btn-info">Registrar grupo</a>
+        </div>
+      </div>
+
+      <hr />
+
+      <form method="get" class="mb-3">
+        <div class="form-row">
+          <div class="form-group col-md-3">
+            <label for="data_inicio">Data início</label>
+            <input id="data_inicio" class="form-control" type="date" name="data_inicio" value="{{ data_inicio }}">
+          </div>
+          <div class="form-group col-md-3">
+            <label for="data_fim">Data fim</label>
+            <input id="data_fim" class="form-control" type="date" name="data_fim" value="{{ data_fim }}">
+          </div>
+          <div class="form-group col-md-3">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" class="form-control" name="tipo">
+              <option value="" {% if not tipo_filtro %}selected{% endif %}>Todos</option>
+              <option value="individual" {% if tipo_filtro == 'individual' %}selected{% endif %}>Individual</option>
+              <option value="grupo" {% if tipo_filtro == 'grupo' %}selected{% endif %}>Grupo</option>
+            </select>
+          </div>
+          <div class="form-group col-md-3 d-flex align-items-end">
+            <button class="btn btn-secondary btn-block" type="submit">Filtrar</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Data</th>
+              <th>Aluno</th>
+              <th>Disciplina</th>
+              <th>Duração</th>
+              <th>Topico</th>
+              <th style="width: 200px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for atendimento in atendimentos %}
+              <tr>
+                <td>
+                  {% if atendimento.tipo == 'individual' %}
+                    <span class="badge badge-success">Individual</span>
+                  {% else %}
+                    <span class="badge badge-primary">Grupo</span>
+                  {% endif %}
+                </td>
+                <td>{{ atendimento.data_hora|date:"d/m/Y H:i" }}</td>
+                <td>{% if atendimento.aluno %}{{ atendimento.aluno.nome }}{% else %}-{% endif %}</td>
+                <td>{{ atendimento.disciplina.codigo }}</td>
+                <td>{{ atendimento.duracao_min }} min</td>
+                <td>{{ atendimento.topico }}</td>
+                <td>
+                  <a class="btn btn-sm btn-warning" href="{% url 'atendimentos:editar_atendimento' atendimento.id %}">Editar</a>
+                  <a class="btn btn-sm btn-danger" href="{% url 'atendimentos:excluir_atendimento' atendimento.id %}">Excluir</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7" class="text-center">Nenhum atendimento encontrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if is_paginated %}
+        <nav aria-label="Paginação">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&tipo={{ tipo_filtro }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&tipo={{ tipo_filtro }}&page={{ page_obj.next_page_number }}">Próxima</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
+

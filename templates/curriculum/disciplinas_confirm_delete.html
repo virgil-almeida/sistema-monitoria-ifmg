@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'curriculum:disciplinas_list' %}">Disciplinas</a></li><li class="breadcrumb-item active">Excluir</li>{% endblock %}
+{% block h1 %}Excluir disciplina{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-danger">
+    <div class="card-body">
+      <p class="mb-3">Tem certeza que deseja excluir <strong>{{ object }}</strong>?</p>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar exclusão</button>
+        <a href="{% url 'curriculum:disciplinas_list' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

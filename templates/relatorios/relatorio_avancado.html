@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório avançado{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'relatorios:dashboard_professor' %}">Dashboard</a></li><li class="breadcrumb-item active">Relatórios</li>{% endblock %}
+{% block h1 %}Relatório de atendimentos com filtros avançados{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-primary">
+    <div class="card-body">
+      <form method="get" class="mb-3">
+        <div class="form-row">
+          <div class="form-group col-md-2">
+            <label>Início</label>
+            <input type="date" class="form-control" name="data_inicio" value="{{ data_inicio }}">
+          </div>
+          <div class="form-group col-md-2">
+            <label>Fim</label>
+            <input type="date" class="form-control" name="data_fim" value="{{ data_fim }}">
+          </div>
+          <div class="form-group col-md-2">
+            <label>Monitor</label>
+            <select class="form-control" name="monitor">
+              <option value="">Todos</option>
+              {% for m in monitores %}
+                <option value="{{ m.id }}" {% if monitor_id and m.id|stringformat:"s" == monitor_id %}selected{% endif %}>
+                  {{ m.usuario.username }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-3">
+            <label>Disciplina</label>
+            <select class="form-control" name="disciplina">
+              <option value="">Todas</option>
+              {% for d in disciplinas %}
+                <option value="{{ d.id }}" {% if disciplina_id and d.id|stringformat:"s" == disciplina_id %}selected{% endif %}>
+                  {{ d.codigo }} - {{ d.nome }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-2">
+            <label>Tipo</label>
+            <select class="form-control" name="tipo">
+              <option value="" {% if not tipo %}selected{% endif %}>Todos</option>
+              <option value="individual" {% if tipo == 'individual' %}selected{% endif %}>Individual</option>
+              <option value="grupo" {% if tipo == 'grupo' %}selected{% endif %}>Grupo</option>
+            </select>
+          </div>
+          <div class="form-group col-md-1 d-flex align-items-end">
+            <button class="btn btn-secondary btn-block" type="submit">Filtrar</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="d-flex justify-content-end mb-3">
+        <a
+          class="btn btn-success"
+          href="{% url 'relatorios:exportar_pdf' %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&monitor={{ monitor_id }}&disciplina={{ disciplina_id }}&tipo={{ tipo }}"
+        >
+          Exportar PDF
+        </a>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Monitor</th>
+              <th>Aluno</th>
+              <th>Disciplina</th>
+              <th>Duração</th>
+              <th>Tópico</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in attend_pag %}
+              <tr>
+                <td>{{ a.data_hora|date:"d/m/Y H:i" }}</td>
+                <td>
+                  {% if a.tipo == 'individual' %}
+                    <span class="badge badge-success">Individual</span>
+                  {% else %}
+                    <span class="badge badge-primary">Grupo</span>
+                  {% endif %}
+                </td>
+                <td>{{ a.monitor.usuario.username }}</td>
+                <td>{% if a.aluno %}{{ a.aluno.nome }}{% else %}-{% endif %}</td>
+                <td>{{ a.disciplina.codigo }}</td>
+                <td>{{ a.duracao_min }} min</td>
+                <td>{{ a.topico }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7" class="text-center">Nenhum resultado.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="7">
+                Total: <strong>{{ qs_total }}</strong> atendimentos | Horas: <strong>{{ qs_total_horas|floatformat:2 }}</strong>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <nav aria-label="Paginação">
+        <ul class="pagination justify-content-center">
+          {% if page > 1 %}
+            <li class="page-item">
+              <a class="page-link" href="?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&monitor={{ monitor_id }}&disciplina={{ disciplina_id }}&tipo={{ tipo }}&page={{ page|add:"-1" }}">
+                Anterior
+              </a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+          {% endif %}
+
+          <li class="page-item disabled">
+            <span class="page-link">Página {{ page }} de {{ total_pages }}</span>
+          </li>
+
+          {% if page < total_pages %}
+            <li class="page-item">
+              <a class="page-link" href="?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&monitor={{ monitor_id }}&disciplina={{ disciplina_id }}&tipo={{ tipo }}&page={{ page|add:"1" }}">
+                Próxima
+              </a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+{% endblock %}
+
