@@ -1,5 +1,5 @@
 from django.contrib.auth.views import LoginView, LogoutView
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import FormView
 
@@ -27,10 +27,16 @@ class MyLogoutView(LogoutView):
         return reverse("accounts:login")
 
 
-@perfil_requerido("admin")
 class RegisterUserView(FormView):
     template_name = "accounts/register.html"
     form_class = RegisterUserForm
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, "403.html", status=403)
+        if getattr(request.user, "perfil", None) != "admin":
+            return render(request, "403.html", status=403)
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         user = form.save()

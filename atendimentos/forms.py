@@ -63,7 +63,7 @@ class AtendimentoGrupoForm(forms.Form):
     duracao_min = forms.IntegerField(min_value=1)
     topico = forms.CharField(max_length=200)
     observacoes = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)
-    numero_participantes = forms.IntegerField(min_value=2)
+    numero_participantes = forms.IntegerField()
 
     def clean_numero_participantes(self):
         valor = self.cleaned_data.get("numero_participantes")

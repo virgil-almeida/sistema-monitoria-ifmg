@@ -35,7 +35,7 @@ def _parse_date(value: str):
         return None
 
 
-@method_decorator(perfil_requerido("professor"), name="dispatch")
+@perfil_requerido("professor")
 def dashboard_professor(request):
     _, monitores = _get_professor_monitorias(request.user)
     atendimentos_qs = Atendimento.objects.filter(monitor__in=monitores).select_related("disciplina", "aluno", "monitor")
@@ -247,7 +247,7 @@ def _base64_logo_ifmg():
     return base64.b64decode(one_px_png_b64)
 
 
-@method_decorator(perfil_requerido("professor"), name="dispatch")
+@perfil_requerido("professor")
 def exportar_pdf(request):
     # Reaproveita exatamente os filtros da tela.
     response = HttpResponse(content_type="application/pdf")
