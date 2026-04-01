@@ -32,6 +32,16 @@ class AtendimentoIndividualCreateView(LoginRequiredMixin, FormView):
     form_class = AtendimentoIndividualForm
     success_url = reverse_lazy("atendimentos:lista_meus_atendimentos")
 
+    def get_initial(self):
+        initial = super().get_initial()
+        aluno_id = self.request.GET.get("aluno")
+        if aluno_id:
+            try:
+                initial["aluno"] = Aluno.objects.get(id=aluno_id, monitor=_get_monitor_or_forbidden(self.request))
+            except Aluno.DoesNotExist:
+                pass
+        return initial
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["monitor"] = _get_monitor_or_forbidden(self.request)

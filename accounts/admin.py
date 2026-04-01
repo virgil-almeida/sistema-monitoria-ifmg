@@ -15,6 +15,14 @@ class UsuarioAdmin(DjangoUserAdmin):
             },
         ),
     )
+    add_fieldsets = DjangoUserAdmin.add_fieldsets + (
+        (
+            "Perfil",
+            {
+                "fields": ("perfil",),
+            },
+        ),
+    )
 
     list_display = ("username", "email", "perfil", "is_staff", "is_active")
     list_filter = ("perfil", "is_staff", "is_active")

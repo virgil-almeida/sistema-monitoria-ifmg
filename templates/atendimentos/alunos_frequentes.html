@@ -56,6 +56,7 @@
                   <th>Nome</th>
                   <th>Matrícula</th>
                   <th>Email</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -64,9 +65,12 @@
                     <td>{{ aluno.nome }}</td>
                     <td>{{ aluno.matricula }}</td>
                     <td>{{ aluno.email|default:"-" }}</td>
+                    <td>
+                      <a href="{% url 'atendimentos:criar_atendimento_individual' %}?aluno={{ aluno.id }}" class="btn btn-sm btn-primary">Registrar atendimento</a>
+                    </td>
                   </tr>
                 {% empty %}
-                  <tr><td colspan="3" class="text-center">Nenhum aluno encontrado.</td></tr>
+                  <tr><td colspan="4" class="text-center">Nenhum aluno encontrado.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
