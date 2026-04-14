@@ -268,6 +268,10 @@ class AtendimentosSprint2Tests(TestCase):
 
     def test_listagem_filtro_por_periodo_data(self):
         hoje = timezone.now()
+        # Usa a data local (America/Sao_Paulo) para o filtro, já que o ORM converte
+        # data_hora para o fuso ativo antes de comparar com __date__.
+        hoje_local = timezone.localdate()
+        ontem_local = hoje_local - timedelta(days=1)
         ontem = hoje - timedelta(days=1)
         a_hoje = Atendimento.objects.create(
             monitor=self.monitor,
@@ -294,7 +298,7 @@ class AtendimentosSprint2Tests(TestCase):
         url = reverse("atendimentos:lista_meus_atendimentos")
         resp = self.client.get(
             url,
-            {"data_inicio": hoje.date().isoformat(), "data_fim": hoje.date().isoformat()},
+            {"data_inicio": hoje_local.isoformat(), "data_fim": hoje_local.isoformat()},
         )
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Hoje")

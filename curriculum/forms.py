@@ -1,5 +1,6 @@
 from django import forms
 
+from accounts.models import Usuario
 from atendimentos.models import Monitor
 from curriculum.models import Disciplina, Turma
 
@@ -35,4 +36,14 @@ class TurmaForm(forms.ModelForm):
                 monitor.ativo = True
                 monitor.save()
         return turma
+
+
+class MonitorForm(forms.ModelForm):
+    class Meta:
+        model = Monitor
+        fields = ("usuario", "turma", "ativo")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["usuario"].queryset = Usuario.objects.filter(perfil="monitor").order_by("username")
 

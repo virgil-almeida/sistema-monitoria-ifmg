@@ -40,6 +40,8 @@ class RegisterUserView(FormView):
 
     def form_valid(self, form):
         user = form.save()
-        # Não logamos automaticamente: admin deve criar e navegar.
+        # Redireciona para monitores quando perfil=monitor, para facilitar o vínculo com turma.
+        if user.perfil == "monitor":
+            return redirect("curriculum:monitores_list")
         return redirect("curriculum:disciplinas_list")
 

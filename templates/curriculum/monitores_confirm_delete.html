@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir monitor{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'curriculum:monitores_list' %}">Monitores</a></li>
+  <li class="breadcrumb-item active">Excluir</li>
+{% endblock %}
+{% block h1 %}Excluir monitor{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <p>Tem certeza que deseja excluir o monitor <strong>{{ object.usuario.username }}</strong> vinculado à turma <strong>{{ object.turma }}</strong>?</p>
+      <p class="text-danger">Todos os atendimentos registrados por este monitor serão removidos junto.</p>
+      <form method="post">
+        {% csrf_token %}
+        <a href="{% url 'curriculum:monitores_list' %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-danger">Confirmar exclusão</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
