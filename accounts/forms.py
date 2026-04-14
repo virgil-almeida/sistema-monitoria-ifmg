@@ -11,3 +11,9 @@ class RegisterUserForm(UserCreationForm):
 
     perfil = forms.ChoiceField(choices=Usuario.PERFIL_CHOICES)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            if not isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-control")
+

@@ -9,6 +9,11 @@ class AlunoForm(forms.ModelForm):
         model = Aluno
         fields = ("nome", "matricula", "email")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
 
 class AtendimentoIndividualForm(forms.ModelForm):
     # Permite selecionar um aluno já cadastrado ou criar inline.
@@ -40,6 +45,10 @@ class AtendimentoIndividualForm(forms.ModelForm):
             self.fields["aluno"].queryset = monitor.alunos.all()
             self.fields["disciplina_display"].queryset = Disciplina.objects.filter(id=monitor.turma.disciplina_id)
             self.fields["disciplina_display"].initial = monitor.turma.disciplina
+
+        for field in self.fields.values():
+            if not isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-control")
 
     def clean(self):
         cleaned = super().clean()
@@ -79,4 +88,8 @@ class AtendimentoGrupoForm(forms.Form):
         if monitor is not None:
             self.fields["disciplina_display"].queryset = Disciplina.objects.filter(id=monitor.turma.disciplina_id)
             self.fields["disciplina_display"].initial = monitor.turma.disciplina
+
+        for field in self.fields.values():
+            if not isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-control")
 

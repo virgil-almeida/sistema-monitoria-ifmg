@@ -10,6 +10,11 @@ class DisciplinaForm(forms.ModelForm):
         model = Disciplina
         fields = ("nome", "codigo", "curso")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
 
 class TurmaForm(forms.ModelForm):
     monitores = forms.ModelMultipleChoiceField(
@@ -26,6 +31,9 @@ class TurmaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Mantém apenas monitores criados, independente de ativo/inativo.
         self.fields["monitores"].queryset = Monitor.objects.select_related("turma")
+        for field in self.fields.values():
+            if not isinstance(field.widget, (forms.CheckboxInput, forms.CheckboxSelectMultiple)):
+                field.widget.attrs.setdefault("class", "form-control")
 
     def save(self, commit=True):
         turma = super().save(commit=False)
@@ -46,4 +54,7 @@ class MonitorForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["usuario"].queryset = Usuario.objects.filter(perfil="monitor").order_by("username")
+        for field in self.fields.values():
+            if not isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-control")
 

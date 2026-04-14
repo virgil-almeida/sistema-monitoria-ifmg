@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from atendimentos.views import (
     AlunosFrequentesView,
@@ -12,6 +13,7 @@ from atendimentos.views import (
 app_name = "atendimentos"
 
 urlpatterns = [
+    path("", RedirectView.as_view(pattern_name="atendimentos:lista_meus_atendimentos", permanent=False)),
     path("meus/", AtendimentoListView.as_view(), name="lista_meus_atendimentos"),
     path("individual/novo/", AtendimentoIndividualCreateView.as_view(), name="criar_atendimento_individual"),
     path("grupo/novo/", AtendimentoGrupoCreateView.as_view(), name="criar_atendimento_grupo"),
