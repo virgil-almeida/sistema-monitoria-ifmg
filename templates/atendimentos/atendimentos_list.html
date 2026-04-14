@@ -64,7 +64,22 @@
                   {% endif %}
                 </td>
                 <td>{{ atendimento.data_hora|date:"d/m/Y H:i" }}</td>
-                <td>{% if atendimento.aluno %}{{ atendimento.aluno.nome }}{% else %}-{% endif %}</td>
+                <td>
+                  {% if atendimento.tipo == 'individual' %}
+                    {{ atendimento.aluno.nome|default:"-" }}
+                  {% else %}
+                    {% with alunos=atendimento.tutoria_grupo.alunos.all %}
+                      {% if alunos %}
+                        <span title="{% for a in alunos %}{{ a.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                          {{ alunos|length }} aluno(s)
+                          <i class="fas fa-info-circle text-muted small"></i>
+                        </span>
+                      {% else %}
+                        <span class="text-muted">Grupo ({{ atendimento.tutoria_grupo.numero_participantes }} part.)</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                </td>
                 <td>{{ atendimento.disciplina.codigo }}</td>
                 <td>{{ atendimento.duracao_min }} min</td>
                 <td>{{ atendimento.topico }}</td>

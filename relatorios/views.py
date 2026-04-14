@@ -100,7 +100,12 @@ def historico_aluno(request):
         aluno_selecionado = alunos_qs.filter(Q(nome__icontains=q) | Q(matricula__icontains=q)).first()
         if aluno_selecionado:
             atendimentos = (
-                Atendimento.objects.filter(monitor__in=monitores, aluno=aluno_selecionado)
+                Atendimento.objects.filter(monitor__in=monitores)
+                .filter(
+                    Q(aluno=aluno_selecionado) |
+                    Q(tutoria_grupo__alunos=aluno_selecionado)
+                )
+                .distinct()
                 .select_related("monitor__usuario", "disciplina", "aluno")
                 .order_by("data_hora")
             )

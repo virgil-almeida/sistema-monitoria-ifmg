@@ -105,10 +105,11 @@ class AtendimentoGrupoCreateView(LoginRequiredMixin, FormView):
             observacoes=cleaned.get("observacoes", ""),
         )
 
-        TutoriaGrupo.objects.create(
+        tutoria = TutoriaGrupo.objects.create(
             atendimento=atendimento,
             numero_participantes=cleaned["numero_participantes"],
         )
+        tutoria.alunos.set(cleaned.get("alunos") or [])
 
         messages.success(self.request, "Tutoria em grupo registrada com sucesso.")
         return redirect(self.get_success_url())
@@ -186,13 +187,15 @@ class AtendimentoEditView(LoginRequiredMixin, FormView):
                     "disciplina_display": self.atendimento.disciplina_id,
                 }
             else:
+                tutoria = getattr(self.atendimento, "tutoria_grupo", None)
                 kwargs["initial"] = {
                     "data_hora": self.atendimento.data_hora,
                     "duracao_min": self.atendimento.duracao_min,
                     "topico": self.atendimento.topico,
                     "observacoes": self.atendimento.observacoes,
-                    "numero_participantes": getattr(self.atendimento.tutoria_grupo, "numero_participantes", 2),
+                    "numero_participantes": tutoria.numero_participantes if tutoria else 2,
                     "disciplina_display": self.atendimento.disciplina_id,
+                    "alunos": tutoria.alunos.all() if tutoria else [],
                 }
         return kwargs
 
@@ -226,10 +229,11 @@ class AtendimentoEditView(LoginRequiredMixin, FormView):
             self.atendimento.observacoes = cleaned.get("observacoes", "")
             self.atendimento.save()
 
-            TutoriaGrupo.objects.update_or_create(
+            tutoria, _ = TutoriaGrupo.objects.update_or_create(
                 atendimento=self.atendimento,
                 defaults={"numero_participantes": cleaned["numero_participantes"]},
             )
+            tutoria.alunos.set(cleaned.get("alunos") or [])
 
         messages.success(self.request, "Atendimento atualizado com sucesso.")
         return redirect(self.get_success_url())

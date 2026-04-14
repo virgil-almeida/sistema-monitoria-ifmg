@@ -34,7 +34,15 @@
         <div class="form-group">
           <label for="id_numero_participantes">Número de participantes</label>
           {{ form.numero_participantes }}
+          <small class="form-text text-muted">{{ form.numero_participantes.help_text }}</small>
           {% for error in form.numero_participantes.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_alunos">Alunos presentes</label>
+          {{ form.alunos }}
+          <small class="form-text text-muted">{{ form.alunos.help_text }}</small>
+          {% for error in form.alunos.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
         </div>
 
         <div class="form-group">

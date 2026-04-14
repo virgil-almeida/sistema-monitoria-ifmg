@@ -72,15 +72,28 @@ class AtendimentoGrupoForm(forms.Form):
     duracao_min = forms.IntegerField(min_value=1)
     topico = forms.CharField(max_length=200)
     observacoes = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)
-    numero_participantes = forms.IntegerField()
+    numero_participantes = forms.IntegerField(
+        help_text="Total de participantes (incluindo os não cadastrados).",
+    )
+    alunos = forms.ModelMultipleChoiceField(
+        queryset=Aluno.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={"size": "8"}),
+        label="Alunos presentes",
+        help_text="Segure Ctrl (ou Cmd no Mac) para selecionar mais de um.",
+    )
 
-    def clean_numero_participantes(self):
-        valor = self.cleaned_data.get("numero_participantes")
-        if valor is None:
-            return valor
-        if valor < 2:
+    def clean(self):
+        cleaned = super().clean()
+        numero = cleaned.get("numero_participantes")
+        alunos = cleaned.get("alunos") or []
+        if numero is not None and numero < 2:
             raise forms.ValidationError("Número de participantes deve ser >= 2.")
-        return valor
+        if numero is not None and len(alunos) > numero:
+            raise forms.ValidationError(
+                "O número de participantes não pode ser menor que a quantidade de alunos selecionados."
+            )
+        return cleaned
 
     def __init__(self, *args, **kwargs):
         monitor = kwargs.pop("monitor", None)
@@ -88,8 +101,10 @@ class AtendimentoGrupoForm(forms.Form):
         if monitor is not None:
             self.fields["disciplina_display"].queryset = Disciplina.objects.filter(id=monitor.turma.disciplina_id)
             self.fields["disciplina_display"].initial = monitor.turma.disciplina
+            self.fields["alunos"].queryset = monitor.alunos.all().order_by("nome")
 
         for field in self.fields.values():
-            if not isinstance(field.widget, forms.CheckboxInput):
+            if not isinstance(field.widget, (forms.CheckboxInput, forms.SelectMultiple)):
                 field.widget.attrs.setdefault("class", "form-control")
+        self.fields["alunos"].widget.attrs.setdefault("class", "form-control")
 

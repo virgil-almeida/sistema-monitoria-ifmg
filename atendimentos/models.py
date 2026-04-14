@@ -72,6 +72,7 @@ class Atendimento(models.Model):
 class TutoriaGrupo(models.Model):
     atendimento = models.OneToOneField(Atendimento, on_delete=models.CASCADE, related_name="tutoria_grupo")
     numero_participantes = models.PositiveIntegerField()
+    alunos = models.ManyToManyField(Aluno, blank=True, related_name="tutorias_grupo")
 
     class Meta:
         ordering = ["atendimento__data_hora"]
