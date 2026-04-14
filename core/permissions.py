@@ -1,6 +1,7 @@
 from functools import wraps
 
-from django.shortcuts import render
+from django.conf import settings
+from django.shortcuts import redirect, render
 
 
 def perfil_requerido(perfil: str):
@@ -12,7 +13,7 @@ def perfil_requerido(perfil: str):
         @wraps(view_func)
         def _wrapped(request, *args, **kwargs):
             if not request.user.is_authenticated:
-                return render(request, "403.html", status=403)
+                return redirect(f"{settings.LOGIN_URL}?next={request.path}")
             if getattr(request.user, "perfil", None) != perfil:
                 return render(request, "403.html", status=403)
             return view_func(request, *args, **kwargs)

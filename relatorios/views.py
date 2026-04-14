@@ -2,16 +2,11 @@ import base64
 import io
 from datetime import date, datetime, timedelta
 
-from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncWeek
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.shortcuts import render
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.generic import ListView
 
 from core.permissions import perfil_requerido
 from curriculum.models import Disciplina
@@ -91,7 +86,7 @@ def dashboard_professor(request):
     )
 
 
-@method_decorator(perfil_requerido("professor"), name="dispatch")
+@perfil_requerido("professor")
 def historico_aluno(request):
     _, monitores = _get_professor_monitorias(request.user)
     alunos_qs = Aluno.objects.filter(monitor__in=monitores)
@@ -123,7 +118,7 @@ def historico_aluno(request):
     )
 
 
-@method_decorator(perfil_requerido("professor"), name="dispatch")
+@perfil_requerido("professor")
 def ranking_dificuldades(request):
     _, monitores = _get_professor_monitorias(request.user)
 
@@ -183,7 +178,7 @@ def ranking_dificuldades(request):
     )
 
 
-@method_decorator(perfil_requerido("professor"), name="dispatch")
+@perfil_requerido("professor")
 def relatorio_avancado(request):
     _, monitores = _get_professor_monitorias(request.user)
     qs = Atendimento.objects.filter(monitor__in=monitores).select_related("aluno", "disciplina", "monitor__usuario")

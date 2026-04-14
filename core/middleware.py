@@ -11,7 +11,7 @@ class PerfilAtivoMiddleware:
 
     def __call__(self, request):
         user = getattr(request, "user", None)
-        if user is not None and user.is_authenticated:
+        if user is not None and user.is_authenticated and not user.is_superuser:
             perfil = getattr(user, "perfil", None)
             if not perfil:
                 return render(request, "403.html", status=403)

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} monitor{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'curriculum:monitores_list' %}">Monitores</a></li>
+  <li class="breadcrumb-item active">{% if form.instance.pk %}Editar{% else %}Novo{% endif %}</li>
+{% endblock %}
+{% block h1 %}{% if form.instance.pk %}Editar monitor{% else %}Novo monitor{% endif %}{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-group">
+          <label for="id_usuario">Usuário (monitor)</label>
+          {{ form.usuario }}
+          <small class="form-text text-muted">Apenas usuários com perfil "monitor" são listados.</small>
+          {% for error in form.usuario.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_turma">Turma</label>
+          {{ form.turma }}
+          {% for error in form.turma.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group form-check">
+          {{ form.ativo }}
+          <label class="form-check-label" for="id_ativo">Ativo</label>
+          {% for error in form.ativo.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'curriculum:monitores_list' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

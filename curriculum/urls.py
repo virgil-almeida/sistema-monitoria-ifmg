@@ -17,5 +17,9 @@ urlpatterns = [
     path("turmas/novo/", views.TurmaCreateView.as_view(), name="turmas_create"),
     path("turmas/<int:pk>/editar/", views.TurmaUpdateView.as_view(), name="turmas_update"),
     path("turmas/<int:pk>/excluir/", views.TurmaDeleteView.as_view(), name="turmas_delete"),
+    path("monitores/", views.MonitorListView.as_view(), name="monitores_list"),
+    path("monitores/novo/", views.MonitorCreateView.as_view(), name="monitores_create"),
+    path("monitores/<int:pk>/editar/", views.MonitorUpdateView.as_view(), name="monitores_update"),
+    path("monitores/<int:pk>/excluir/", views.MonitorDeleteView.as_view(), name="monitores_delete"),
 ]
 
