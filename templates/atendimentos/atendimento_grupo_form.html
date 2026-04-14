@@ -33,6 +33,13 @@
 
         <div class="form-group">
           <label for="id_alunos">Alunos presentes</label>
+          <input
+            type="search"
+            id="filtro_alunos"
+            class="form-control mb-1"
+            placeholder="Filtrar por nome…"
+            autocomplete="off"
+          />
           {{ form.alunos }}
           <small class="form-text text-muted">{{ form.alunos.help_text }}</small>
           {% for error in form.alunos.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
@@ -66,18 +73,28 @@
 {% block extra_js %}
 <script>
   (function () {
-    const selectAlunos = document.getElementById('id_alunos');
+    const selectAlunos     = document.getElementById('id_alunos');
     const inputParticipantes = document.getElementById('id_numero_participantes');
+    const inputFiltro      = document.getElementById('filtro_alunos');
 
     if (!selectAlunos || !inputParticipantes) return;
 
+    /* ── filtro por nome ── */
+    function filtrar() {
+      const termo = inputFiltro ? inputFiltro.value.toLowerCase() : '';
+      for (const opt of selectAlunos.options) {
+        // Alunos já selecionados ficam sempre visíveis
+        opt.hidden = !opt.selected && !opt.text.toLowerCase().includes(termo);
+      }
+    }
+
+    if (inputFiltro) inputFiltro.addEventListener('input', filtrar);
+
+    /* ── sincroniza contador ── */
     function sincronizar() {
       const selecionados = selectAlunos.selectedOptions.length;
       const atual = parseInt(inputParticipantes.value, 10) || 0;
-      // Atualiza apenas se o valor atual for menor que os alunos selecionados
-      if (atual < selecionados) {
-        inputParticipantes.value = selecionados;
-      }
+      if (atual < selecionados) inputParticipantes.value = selecionados;
     }
 
     selectAlunos.addEventListener('change', sincronizar);
