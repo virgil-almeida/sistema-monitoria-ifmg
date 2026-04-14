@@ -12,8 +12,9 @@
         {{ form.non_field_errors }}
 
         <div class="form-group">
-          <label>Disciplina</label>
-          {{ form.disciplina_display }}
+          <label for="id_monitor">Disciplina/Turma</label>
+          {{ form.monitor }}
+          {% for error in form.monitor.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
         </div>
 
         {% if 'aluno' in form.fields %}

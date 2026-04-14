@@ -6,11 +6,11 @@ from curriculum.models import Disciplina, Turma
 
 
 class Monitor(models.Model):
-    usuario = models.OneToOneField(
+    usuario = models.ForeignKey(
         Usuario,
         on_delete=models.CASCADE,
         limit_choices_to={"perfil": "monitor"},
-        related_name="monitor",
+        related_name="monitores",
     )
     turma = models.ForeignKey(Turma, on_delete=models.PROTECT, related_name="monitores")
     ativo = models.BooleanField(default=True)

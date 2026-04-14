@@ -1,33 +1,50 @@
 from django import forms
 
-from atendimentos.models import Aluno, Atendimento, TutoriaGrupo
+from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
 from curriculum.models import Disciplina
+
+
+class MonitorChoiceField(forms.ModelChoiceField):
+    """Exibe a turma (disciplina + semestre) como label, sem repetir o username."""
+
+    def label_from_instance(self, obj):
+        return str(obj.turma)  # ex: "ALG101 - Algoritmos (2026/1)"
 
 
 class AlunoForm(forms.ModelForm):
     class Meta:
         model = Aluno
-        fields = ("nome", "matricula", "email")
+        fields = ("monitor", "nome", "matricula", "email")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, monitores=None, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs.setdefault("class", "form-control")
+        mon_field = MonitorChoiceField(
+            queryset=Monitor.objects.none(),
+            label="Disciplina/Turma",
+        )
+        self.fields["monitor"] = mon_field
+
+        if monitores is not None:
+            qs = monitores if hasattr(monitores, "filter") else Monitor.objects.filter(pk__in=monitores)
+            self.fields["monitor"].queryset = qs
+            if qs.count() == 1:
+                self.fields["monitor"].initial = qs.first()
+                self.fields["monitor"].widget = forms.HiddenInput()
+
+        for name, field in self.fields.items():
+            if not isinstance(field.widget, forms.HiddenInput):
+                field.widget.attrs.setdefault("class", "form-control")
 
 
 class AtendimentoIndividualForm(forms.ModelForm):
-    # Permite selecionar um aluno já cadastrado ou criar inline.
+    monitor = MonitorChoiceField(
+        queryset=Monitor.objects.none(),
+        label="Disciplina/Turma",
+    )
     aluno = forms.ModelChoiceField(queryset=Aluno.objects.none(), required=False)
     novo_aluno_nome = forms.CharField(max_length=200, required=False)
     novo_aluno_matricula = forms.CharField(max_length=50, required=False)
     novo_aluno_email = forms.EmailField(required=False)
-
-    disciplina_display = forms.ModelChoiceField(
-        queryset=Disciplina.objects.none(),
-        required=False,
-        disabled=True,
-        help_text="Definido pela turma do monitor.",
-    )
 
     class Meta:
         model = Atendimento
@@ -37,14 +54,12 @@ class AtendimentoIndividualForm(forms.ModelForm):
             "observacoes": forms.Textarea(attrs={"rows": 3}),
         }
 
-    def __init__(self, *args, **kwargs):
-        monitor = kwargs.pop("monitor", None)
+    def __init__(self, *args, monitores=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if monitor is not None:
-            self.fields["aluno"].queryset = monitor.alunos.all()
-            self.fields["disciplina_display"].queryset = Disciplina.objects.filter(id=monitor.turma.disciplina_id)
-            self.fields["disciplina_display"].initial = monitor.turma.disciplina
+        if monitores is not None:
+            self.fields["monitor"].queryset = monitores
+            self.fields["aluno"].queryset = Aluno.objects.filter(monitor__in=monitores)
 
         for field in self.fields.values():
             if not isinstance(field.widget, forms.CheckboxInput):
@@ -63,10 +78,9 @@ class AtendimentoIndividualForm(forms.ModelForm):
 
 
 class AtendimentoGrupoForm(forms.Form):
-    disciplina_display = forms.ModelChoiceField(
-        queryset=Disciplina.objects.none(),
-        required=False,
-        disabled=True,
+    monitor = MonitorChoiceField(
+        queryset=Monitor.objects.none(),
+        label="Disciplina/Turma",
     )
     data_hora = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
     duracao_min = forms.IntegerField(min_value=1)
@@ -95,16 +109,13 @@ class AtendimentoGrupoForm(forms.Form):
             )
         return cleaned
 
-    def __init__(self, *args, **kwargs):
-        monitor = kwargs.pop("monitor", None)
+    def __init__(self, *args, monitores=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if monitor is not None:
-            self.fields["disciplina_display"].queryset = Disciplina.objects.filter(id=monitor.turma.disciplina_id)
-            self.fields["disciplina_display"].initial = monitor.turma.disciplina
-            self.fields["alunos"].queryset = monitor.alunos.all().order_by("nome")
+        if monitores is not None:
+            self.fields["monitor"].queryset = monitores
+            self.fields["alunos"].queryset = Aluno.objects.filter(monitor__in=monitores).order_by("nome")
 
         for field in self.fields.values():
             if not isinstance(field.widget, (forms.CheckboxInput, forms.SelectMultiple)):
                 field.widget.attrs.setdefault("class", "form-control")
         self.fields["alunos"].widget.attrs.setdefault("class", "form-control")
-

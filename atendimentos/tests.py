@@ -66,6 +66,7 @@ class AtendimentosSprint2Tests(TestCase):
         resp = self.client.post(
             url,
             {
+                "monitor": self.monitor.id,
                 "aluno": self.aluno.id,
                 "novo_aluno_nome": "",
                 "novo_aluno_matricula": "",
@@ -90,6 +91,7 @@ class AtendimentosSprint2Tests(TestCase):
         resp = self.client.post(
             url,
             {
+                "monitor": self.monitor.id,
                 "aluno": "",
                 "novo_aluno_nome": "Carla",
                 "novo_aluno_matricula": "C001",
@@ -115,6 +117,7 @@ class AtendimentosSprint2Tests(TestCase):
         resp = self.client.post(
             url,
             {
+                "monitor": self.monitor.id,
                 "data_hora": dt,
                 "duracao_min": 90,
                 "topico": "Aulas coletivas",
@@ -136,6 +139,7 @@ class AtendimentosSprint2Tests(TestCase):
         resp = self.client.post(
             url,
             {
+                "monitor": self.monitor.id,
                 "data_hora": dt,
                 "duracao_min": 90,
                 "topico": "Sessão inválida",
@@ -196,6 +200,7 @@ class AtendimentosSprint2Tests(TestCase):
         resp = self.client.post(
             url,
             {
+                "monitor": self.monitor.id,
                 "aluno": self.aluno.id,
                 "novo_aluno_nome": "",
                 "novo_aluno_matricula": "",
@@ -250,6 +255,7 @@ class AtendimentosSprint2Tests(TestCase):
         resp = self.client.post(
             url,
             {
+                "monitor": self.monitor.id,
                 "data_hora": dt,
                 "duracao_min": 80,
                 "topico": "Grupo novo",
@@ -312,6 +318,7 @@ class AtendimentosSprint2Tests(TestCase):
         resp = self.client.post(
             url,
             {
+                "monitor": self.monitor.id,
                 "aluno": "",
                 "novo_aluno_nome": "",
                 "novo_aluno_matricula": "",
@@ -354,7 +361,7 @@ class AtendimentosSprint2Tests(TestCase):
 
         resp = self.client.post(
             url,
-            {"nome": "Daniela", "matricula": "D001", "email": "daniela@example.com"},
+            {"monitor": self.monitor.id, "nome": "Daniela", "matricula": "D001", "email": "daniela@example.com"},
             follow=False,
         )
         self.assertEqual(resp.status_code, 302)

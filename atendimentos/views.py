@@ -16,14 +16,12 @@ from atendimentos.forms import (
 from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
 
 
-def _get_monitor_or_forbidden(request) -> Monitor:
-    try:
-        monitor = request.user.monitor
-    except Monitor.DoesNotExist:
-        raise PermissionDenied("Monitor não encontrado.")
-    if not monitor.ativo:
-        raise PermissionDenied("Monitor inativo.")
-    return monitor
+def _get_monitors_or_forbidden(request):
+    """Retorna queryset de Monitors ativos do usuário logado. Levanta PermissionDenied se nenhum."""
+    monitors = Monitor.objects.filter(usuario=request.user, ativo=True).select_related("turma__disciplina")
+    if not monitors.exists():
+        raise PermissionDenied("Monitor não encontrado ou inativo.")
+    return monitors
 
 
 @method_decorator(perfil_requerido("monitor"), name="dispatch")
@@ -37,19 +35,20 @@ class AtendimentoIndividualCreateView(LoginRequiredMixin, FormView):
         aluno_id = self.request.GET.get("aluno")
         if aluno_id:
             try:
-                initial["aluno"] = Aluno.objects.get(id=aluno_id, monitor=_get_monitor_or_forbidden(self.request))
+                monitors = _get_monitors_or_forbidden(self.request)
+                initial["aluno"] = Aluno.objects.get(id=aluno_id, monitor__in=monitors)
             except Aluno.DoesNotExist:
                 pass
         return initial
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["monitor"] = _get_monitor_or_forbidden(self.request)
+        kwargs["monitores"] = _get_monitors_or_forbidden(self.request)
         return kwargs
 
     def form_valid(self, form):
-        monitor = _get_monitor_or_forbidden(self.request)
         cleaned = form.cleaned_data
+        monitor = cleaned["monitor"]
 
         aluno = cleaned.get("aluno")
         novo_nome = cleaned.get("novo_aluno_nome", "").strip()
@@ -64,7 +63,7 @@ class AtendimentoIndividualCreateView(LoginRequiredMixin, FormView):
                 email=novo_email or None,
             )
 
-        atendimento = Atendimento.objects.create(
+        Atendimento.objects.create(
             monitor=monitor,
             tipo=Atendimento.TIPO_INDIVIDUAL,
             aluno=aluno,
@@ -87,12 +86,12 @@ class AtendimentoGrupoCreateView(LoginRequiredMixin, FormView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["monitor"] = _get_monitor_or_forbidden(self.request)
+        kwargs["monitores"] = _get_monitors_or_forbidden(self.request)
         return kwargs
 
     def form_valid(self, form):
-        monitor = _get_monitor_or_forbidden(self.request)
         cleaned = form.cleaned_data
+        monitor = cleaned["monitor"]
 
         atendimento = Atendimento.objects.create(
             monitor=monitor,
@@ -123,10 +122,10 @@ class AtendimentoListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        monitor = _get_monitor_or_forbidden(self.request)
+        monitors = _get_monitors_or_forbidden(self.request)
 
         qs = (
-            Atendimento.objects.filter(monitor=monitor)
+            Atendimento.objects.filter(monitor__in=monitors)
             .select_related("aluno", "disciplina")
             .order_by("-data_hora")
         )
@@ -159,9 +158,10 @@ class AtendimentoEditView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.atendimento = get_object_or_404(Atendimento, pk=kwargs["pk"])
-        monitor = _get_monitor_or_forbidden(request)
-        if self.atendimento.monitor_id != monitor.id:
+        monitors = _get_monitors_or_forbidden(request)
+        if not monitors.filter(id=self.atendimento.monitor_id).exists():
             return render(request, "403.html", status=403)
+        self.monitors = monitors
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_class(self):
@@ -171,11 +171,12 @@ class AtendimentoEditView(LoginRequiredMixin, FormView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["monitor"] = _get_monitor_or_forbidden(self.request)
+        kwargs["monitores"] = self.monitors
 
         if self.request.method in ["GET"]:
             if self.atendimento.tipo == Atendimento.TIPO_INDIVIDUAL:
                 kwargs["initial"] = {
+                    "monitor": self.atendimento.monitor_id,
                     "data_hora": self.atendimento.data_hora,
                     "duracao_min": self.atendimento.duracao_min,
                     "topico": self.atendimento.topico,
@@ -184,24 +185,23 @@ class AtendimentoEditView(LoginRequiredMixin, FormView):
                     "novo_aluno_nome": "",
                     "novo_aluno_matricula": "",
                     "novo_aluno_email": "",
-                    "disciplina_display": self.atendimento.disciplina_id,
                 }
             else:
                 tutoria = getattr(self.atendimento, "tutoria_grupo", None)
                 kwargs["initial"] = {
+                    "monitor": self.atendimento.monitor_id,
                     "data_hora": self.atendimento.data_hora,
                     "duracao_min": self.atendimento.duracao_min,
                     "topico": self.atendimento.topico,
                     "observacoes": self.atendimento.observacoes,
                     "numero_participantes": tutoria.numero_participantes if tutoria else 2,
-                    "disciplina_display": self.atendimento.disciplina_id,
                     "alunos": tutoria.alunos.all() if tutoria else [],
                 }
         return kwargs
 
     def form_valid(self, form):
-        monitor = _get_monitor_or_forbidden(self.request)
         cleaned = form.cleaned_data
+        monitor = cleaned["monitor"]
 
         if self.atendimento.tipo == Atendimento.TIPO_INDIVIDUAL:
             aluno = cleaned.get("aluno")
@@ -216,6 +216,8 @@ class AtendimentoEditView(LoginRequiredMixin, FormView):
                     email=novo_email or None,
                 )
 
+            self.atendimento.monitor = monitor
+            self.atendimento.disciplina = monitor.turma.disciplina
             self.atendimento.aluno = aluno
             self.atendimento.data_hora = cleaned["data_hora"]
             self.atendimento.duracao_min = cleaned["duracao_min"]
@@ -223,6 +225,8 @@ class AtendimentoEditView(LoginRequiredMixin, FormView):
             self.atendimento.observacoes = cleaned.get("observacoes", "")
             self.atendimento.save()
         else:
+            self.atendimento.monitor = monitor
+            self.atendimento.disciplina = monitor.turma.disciplina
             self.atendimento.data_hora = cleaned["data_hora"]
             self.atendimento.duracao_min = cleaned["duracao_min"]
             self.atendimento.topico = cleaned["topico"]
@@ -247,8 +251,8 @@ class AtendimentoDeleteView(LoginRequiredMixin, DeleteView):
 
     def dispatch(self, request, *args, **kwargs):
         self.atendimento = get_object_or_404(Atendimento, pk=kwargs["pk"])
-        monitor = _get_monitor_or_forbidden(request)
-        if self.atendimento.monitor_id != monitor.id:
+        monitors = _get_monitors_or_forbidden(request)
+        if not monitors.filter(id=self.atendimento.monitor_id).exists():
             return render(request, "403.html", status=403)
         return super().dispatch(request, *args, **kwargs)
 
@@ -260,13 +264,14 @@ class AlunosFrequentesView(LoginRequiredMixin, FormView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
+        kwargs["monitores"] = _get_monitors_or_forbidden(self.request)
         return kwargs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        monitor = _get_monitor_or_forbidden(self.request)
+        monitors = _get_monitors_or_forbidden(self.request)
         q = self.request.GET.get("q", "").strip()
-        alunos_qs = monitor.alunos.all()
+        alunos_qs = Aluno.objects.filter(monitor__in=monitors)
         if q:
             alunos_qs = alunos_qs.filter(Q(nome__icontains=q) | Q(matricula__icontains=q))
         ctx["alunos"] = alunos_qs.order_by("nome")
@@ -274,10 +279,6 @@ class AlunosFrequentesView(LoginRequiredMixin, FormView):
         return ctx
 
     def form_valid(self, form):
-        monitor = _get_monitor_or_forbidden(self.request)
-        aluno = form.save(commit=False)
-        aluno.monitor = monitor
-        aluno.save()
+        form.save()
         messages.success(self.request, "Aluno cadastrado com sucesso.")
         return redirect("atendimentos:alunos_frequentes")
-
