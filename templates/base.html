@@ -34,7 +34,10 @@
               <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
                 <a class="dropdown-item" href="{% url 'core:perfil' %}">Meu perfil</a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="{% url 'accounts:logout' %}">Sair</a>
+                <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item border-0 bg-transparent">Sair</button>
+                </form>
               </div>
             </li>
           {% endif %}

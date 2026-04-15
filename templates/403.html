@@ -9,7 +9,7 @@
     <h2 class="headline text-danger">403</h2>
     <div class="error-content">
       <h3><i class="fas fa-ban text-danger"></i> Sem permissão</h3>
-      <p>Você não tem acesso a esta página.</p>
+      <p>{% if exception %}{{ exception }}{% else %}Você não tem acesso a esta página.{% endif %}</p>
     </div>
   </div>
 {% endblock %}

@@ -1,6 +1,6 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.views.generic import FormView
 
 from core.permissions import perfil_requerido
@@ -23,8 +23,12 @@ class MyLoginView(LoginView):
 
 
 class MyLogoutView(LogoutView):
-    def get_next_page(self):
-        return reverse("accounts:login")
+    next_page = reverse_lazy("accounts:login")
+    http_method_names = ["get", "post", "options"]
+
+    def get(self, request, *args, **kwargs):
+        # Django 5+ removeu GET do LogoutView; redireciona para login sem deslogar.
+        return redirect("accounts:login")
 
 
 class RegisterUserView(FormView):

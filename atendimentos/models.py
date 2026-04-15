@@ -6,11 +6,11 @@ from curriculum.models import Disciplina, Turma
 
 
 class Monitor(models.Model):
-    usuario = models.OneToOneField(
+    usuario = models.ForeignKey(
         Usuario,
         on_delete=models.CASCADE,
         limit_choices_to={"perfil": "monitor"},
-        related_name="monitor",
+        related_name="monitores",
     )
     turma = models.ForeignKey(Turma, on_delete=models.PROTECT, related_name="monitores")
     ativo = models.BooleanField(default=True)
@@ -72,6 +72,7 @@ class Atendimento(models.Model):
 class TutoriaGrupo(models.Model):
     atendimento = models.OneToOneField(Atendimento, on_delete=models.CASCADE, related_name="tutoria_grupo")
     numero_participantes = models.PositiveIntegerField()
+    alunos = models.ManyToManyField(Aluno, blank=True, related_name="tutorias_grupo")
 
     class Meta:
         ordering = ["atendimento__data_hora"]
