@@ -1,0 +1,42 @@
+services:
+  monitoria-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-monitoria}
+      POSTGRES_USER: ${POSTGRES_USER:-monitoria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - monitoria_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-monitoria}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monitoria-net
+
+  monitoria-web:
+    build: .
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate --noinput --settings=monitoria_ifmg.production_settings &&
+             python manage.py collectstatic --noinput --settings=monitoria_ifmg.production_settings &&
+             gunicorn monitoria_ifmg.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    ports:
+      - "8004:8000"
+    depends_on:
+      monitoria-db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: monitoria_ifmg.production_settings
+    networks:
+      - monitoria-net
+
+volumes:
+  monitoria_postgres_data:
+
+networks:
+  monitoria-net:
+    driver: bridge

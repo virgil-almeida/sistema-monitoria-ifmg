@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard do professor{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Dashboard</li>{% endblock %}
+{% block h1 %}Dashboard do professor orientador{% endblock %}
+
+{% block extra_head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card card-primary">
+        <div class="card-body">
+          <h3 class="card-title">Total de atendimentos no mês</h3>
+          <div class="display-4">{{ total_mes }}</div>
+          <p class="text-muted mb-0">Individual + Grupo</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card card-success">
+        <div class="card-body">
+          <h3 class="card-title">Atenção: possíveis dificuldades</h3>
+          {% if top_alunos %}
+            <ul class="list-unstyled mb-0">
+              {% for a in top_alunos %}
+                <li class="mb-1">
+                  <strong>{{ a.aluno__nome }}</strong> ({{ a.aluno__matricula }}) - {{ a.total }} atendimentos
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="mb-0">Nenhum aluno com destaque no período atual.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Atendimentos por semana</h3>
+        </div>
+        <div class="card-body">
+          <canvas id="chartAtendimentos" height="140"></canvas>
+          {{ chart_labels|json_script:"chart-labels" }}
+          {{ chart_data|json_script:"chart-data" }}
+          <script>
+            (function () {
+              const labels = JSON.parse(document.getElementById("chart-labels").textContent);
+              const values = JSON.parse(document.getElementById("chart-data").textContent);
+              const ctx = document.getElementById("chartAtendimentos").getContext("2d");
+              new Chart(ctx, {
+                type: "bar",
+                data: {
+                  labels: labels,
+                  datasets: [
+                    {
+                      label: "Atendimentos",
+                      data: values,
+                      backgroundColor: "rgba(60, 141, 188, 0.6)"
+                    }
+                  ]
+                },
+                options: {
+                  responsive: true,
+                  scales: { y: { beginAtZero: true } }
+                }
+              });
+            })();
+          </script>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card card-outline">
+        <div class="card-header">
+          <h3 class="card-title">Monitores (horas no mês)</h3>
+        </div>
+        <div class="card-body">
+          {% if monitores_cards %}
+            <div class="list-group">
+              {% for m in monitores_cards %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                  <span>{{ m.username }}</span>
+                  <span class="badge badge-success">{{ m.horas|floatformat:2 }}h</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="mb-0">Sem dados de atendimentos no mês.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

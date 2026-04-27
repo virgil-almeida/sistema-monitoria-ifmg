@@ -1,0 +1,207 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>{% block title %}Sistema de Monitoria IFMG{% endblock %}</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <!-- AdminLTE -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css" />
+    <!-- Optional: overlayScrollbars -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.3.0/css/OverlayScrollbars.min.css" />
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="hold-transition sidebar-mini layout-fixed">
+    <div class="wrapper">
+      <!-- Topbar -->
+      <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+          </li>
+        </ul>
+        <ul class="navbar-nav ml-auto">
+          {% if user.is_authenticated %}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">
+                {{ user.username }}
+              </a>
+              <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                <a class="dropdown-item" href="{% url 'core:perfil' %}">Meu perfil</a>
+                <div class="dropdown-divider"></div>
+                <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item border-0 bg-transparent">Sair</button>
+                </form>
+              </div>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+
+      <!-- Sidebar -->
+      <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <a href="{% url 'home' %}" class="brand-link">
+          <img
+            src="{% static 'img/logo-ifmg.svg' %}"
+            alt="IFMG"
+            class="brand-image img-circle elevation-3"
+            style="opacity: 0.8; width: 33px; height: 33px"
+          />
+          <span class="brand-text font-weight-light">Monitoria IFMG</span>
+        </a>
+
+        <div class="sidebar">
+          <nav class="mt-2">
+            <ul
+              class="nav nav-pills nav-sidebar flex-column"
+              data-widget="treeview"
+              role="menu"
+              data-accordion="false"
+            >
+              {% if user.is_authenticated %}
+                {% if user.perfil == 'monitor' %}
+                  <li class="nav-item">
+                    <a href="{% url 'atendimentos:lista_meus_atendimentos' %}" class="nav-link">
+                      <i class="nav-icon far fa-calendar-alt"></i>
+                      <p>Meus atendimentos</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'atendimentos:criar_atendimento_individual' %}" class="nav-link">
+                      <i class="nav-icon far fa-edit"></i>
+                      <p>Registrar individual</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'atendimentos:criar_atendimento_grupo' %}" class="nav-link">
+                      <i class="nav-icon fas fa-users"></i>
+                      <p>Registrar grupo</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'atendimentos:alunos_frequentes' %}" class="nav-link">
+                      <i class="nav-icon fas fa-user-friends"></i>
+                      <p>Meus alunos</p>
+                    </a>
+                  </li>
+                {% elif user.perfil == 'professor' %}
+                  <li class="nav-item">
+                    <a href="{% url 'relatorios:dashboard_professor' %}" class="nav-link">
+                      <i class="nav-icon fas fa-tachometer-alt"></i>
+                      <p>Dashboard</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'relatorios:historico_aluno' %}" class="nav-link">
+                      <i class="nav-icon fas fa-book"></i>
+                      <p>Histórico</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'relatorios:ranking_dificuldades' %}" class="nav-link">
+                      <i class="nav-icon fas fa-layer-group"></i>
+                      <p>Dificuldades</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'relatorios:relatorio_avancado' %}" class="nav-link">
+                      <i class="nav-icon fas fa-search"></i>
+                      <p>Relatórios</p>
+                    </a>
+                  </li>
+                {% elif user.perfil == 'admin' %}
+                  <li class="nav-item">
+                    <a href="{% url 'curriculum:disciplinas_list' %}" class="nav-link">
+                      <i class="nav-icon fas fa-graduation-cap"></i>
+                      <p>Disciplinas</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'curriculum:turmas_list' %}" class="nav-link">
+                      <i class="nav-icon fas fa-chalkboard-teacher"></i>
+                      <p>Turmas</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'curriculum:monitores_list' %}" class="nav-link">
+                      <i class="nav-icon fas fa-user-tie"></i>
+                      <p>Monitores</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'accounts:register' %}" class="nav-link">
+                      <i class="nav-icon fas fa-user-plus"></i>
+                      <p>Cadastrar usuário</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="/admin/" class="nav-link">
+                      <i class="nav-icon fas fa-cogs"></i>
+                      <p>Django admin</p>
+                    </a>
+                  </li>
+                {% endif %}
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Page content -->
+      <div class="content-wrapper">
+        {% if user.is_authenticated %}
+          <div class="content-header">
+            <div class="container-fluid">
+              <div class="row mb-2">
+                <div class="col-sm-6">
+                  <h1 class="m-0">{% block h1 %}Painel{% endblock %}</h1>
+                </div>
+                <div class="col-sm-6">
+                  <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Início</a></li>
+                    {% block breadcrumb %}{% endblock %}
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        <section class="content">
+          <div class="container-fluid">
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="close" data-dismiss="alert" aria-label="Fechar">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+              {% endfor %}
+            {% endif %}
+
+            {% block content %}{% endblock %}
+          </div>
+        </section>
+      </div>
+
+      <footer class="main-footer">
+        <strong>Monitoria IFMG</strong> &copy; {% now "Y" %}
+      </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.3.0/js/jquery.overlayScrollbars.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
+

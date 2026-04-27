@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir atendimento{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'atendimentos:lista_meus_atendimentos' %}">Meus atendimentos</a></li><li class="breadcrumb-item active">Excluir</li>{% endblock %}
+{% block h1 %}Excluir atendimento{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-danger">
+    <div class="card-body">
+      <p class="mb-3">
+        Tem certeza que deseja excluir este atendimento?
+      </p>
+      <div class="mb-3">
+        <strong>Tipo:</strong> {{ object.tipo }}<br />
+        <strong>Data:</strong> {{ object.data_hora|date:"d/m/Y H:i" }}<br />
+        <strong>Aluno:</strong> {{ object.aluno.nome|default:"-" }}<br />
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar</button>
+        <a class="btn btn-secondary" href="{% url 'atendimentos:lista_meus_atendimentos' %}">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

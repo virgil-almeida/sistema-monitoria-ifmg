@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Monitores{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Monitores</li>{% endblock %}
+{% block h1 %}Monitores{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <a href="{% url 'curriculum:monitores_create' %}" class="btn btn-primary mb-2">Novo monitor</a>
+
+        <form class="form-inline mb-2" method="get">
+          <input
+            class="form-control mr-2"
+            type="search"
+            name="q"
+            value="{{ request.GET.q|default:'' }}"
+            placeholder="Buscar por nome, disciplina ou semestre"
+          />
+          <button class="btn btn-secondary" type="submit">Buscar</button>
+        </form>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>Turma</th>
+              <th>Semestre</th>
+              <th>Ativo</th>
+              <th style="width: 180px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for monitor in monitores %}
+              <tr>
+                <td>{{ monitor.usuario.username }}</td>
+                <td>{{ monitor.turma.disciplina.codigo }} - {{ monitor.turma.disciplina.nome }}</td>
+                <td>{{ monitor.turma.semestre }}</td>
+                <td>
+                  {% if monitor.ativo %}
+                    <span class="badge badge-success">Ativo</span>
+                  {% else %}
+                    <span class="badge badge-secondary">Inativo</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a class="btn btn-sm btn-warning" href="{% url 'curriculum:monitores_update' monitor.id %}">Editar</a>
+                  <a class="btn btn-sm btn-danger" href="{% url 'curriculum:monitores_delete' monitor.id %}">Excluir</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5" class="text-center">Nenhum monitor encontrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if is_paginated %}
+        <nav aria-label="Paginação">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.next_page_number }}">Próxima</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

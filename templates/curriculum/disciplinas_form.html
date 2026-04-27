@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} disciplina{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'curriculum:disciplinas_list' %}">Disciplinas</a></li><li class="breadcrumb-item active">{% if form.instance.pk %}Editar{% else %}Nova{% endif %}</li>{% endblock %}
+{% block h1 %}{% if form.instance.pk %}Editar disciplina{% else %}Nova disciplina{% endif %}{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-group">
+          <label for="id_codigo">Código</label>
+          {{ form.codigo }}
+          {% for error in form.codigo.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_nome">Nome</label>
+          {{ form.nome }}
+          {% for error in form.nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_curso">Curso</label>
+          {{ form.curso }}
+          {% for error in form.curso.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'curriculum:disciplinas_list' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

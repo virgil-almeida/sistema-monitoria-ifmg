@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar tutoria em grupo{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'atendimentos:lista_meus_atendimentos' %}">Meus atendimentos</a></li><li class="breadcrumb-item active">Grupo</li>{% endblock %}
+{% block h1 %}Registrar tutoria em grupo{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-primary">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-group">
+          <label for="id_monitor">Disciplina/Turma</label>
+          {{ form.monitor }}
+          {% for error in form.monitor.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <hr />
+        <h5 class="mb-3">Detalhes</h5>
+
+        <div class="form-group">
+          <label for="id_data_hora">Data e hora</label>
+          {{ form.data_hora }}
+          {% for error in form.data_hora.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_duracao_min">Duração (minutos)</label>
+          {{ form.duracao_min }}
+          {% for error in form.duracao_min.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_alunos">Alunos presentes</label>
+          <input
+            type="search"
+            id="filtro_alunos"
+            class="form-control mb-1"
+            placeholder="Filtrar por nome…"
+            autocomplete="off"
+          />
+          {{ form.alunos }}
+          <small class="form-text text-muted">{{ form.alunos.help_text }}</small>
+          {% for error in form.alunos.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_numero_participantes">Número de participantes</label>
+          {{ form.numero_participantes }}
+          <small class="form-text text-muted">{{ form.numero_participantes.help_text }}</small>
+          {% for error in form.numero_participantes.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_topico">Tópicos abordados</label>
+          {{ form.topico }}
+          {% for error in form.topico.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_observacoes">Observações (opcional)</label>
+          {{ form.observacoes }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'atendimentos:lista_meus_atendimentos' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const selectAlunos     = document.getElementById('id_alunos');
+    const inputParticipantes = document.getElementById('id_numero_participantes');
+    const inputFiltro      = document.getElementById('filtro_alunos');
+
+    if (!selectAlunos || !inputParticipantes) return;
+
+    /* ── filtro por nome ── */
+    function filtrar() {
+      const termo = inputFiltro ? inputFiltro.value.toLowerCase() : '';
+      for (const opt of selectAlunos.options) {
+        // Alunos já selecionados ficam sempre visíveis
+        opt.hidden = !opt.selected && !opt.text.toLowerCase().includes(termo);
+      }
+    }
+
+    if (inputFiltro) inputFiltro.addEventListener('input', filtrar);
+
+    /* ── sincroniza contador ── */
+    function sincronizar() {
+      const selecionados = selectAlunos.selectedOptions.length;
+      const atual = parseInt(inputParticipantes.value, 10) || 0;
+      if (atual < selecionados) inputParticipantes.value = selecionados;
+    }
+
+    selectAlunos.addEventListener('change', sincronizar);
+  })();
+</script>
+{% endblock %}
+
