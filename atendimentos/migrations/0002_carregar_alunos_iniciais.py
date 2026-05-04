@@ -43,3 +43,4 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(carregar_fixtures, reverse_code=remover_fixtures),
     ]
+    
