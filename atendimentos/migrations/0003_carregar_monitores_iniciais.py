@@ -10,7 +10,7 @@ def carregar_monitores(apps, schema_editor):
     Turma = apps.get_model('curriculum', 'Turma')
     Disciplina = apps.get_model('curriculum', 'Disciplina')
 
-    fixture_path = os.path.join(settings.BASE_DIR, 'atendimentos', 'fixtures', 'monitories_iniciais.json')
+    fixture_path = os.path.join(settings.BASE_DIR, 'atendimentos', 'fixtures', 'monitores_iniciais.json')
     
     if not os.path.exists(fixture_path):
         return
@@ -79,7 +79,7 @@ def remover_monitores(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('atendimentos', '0002_carregar_alunos_iniciais'),
+        ('atendimentos', '0004_carregar_professores_iniciais'),
     ]
 
     operations = [

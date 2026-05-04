@@ -39,7 +39,7 @@ def remover_professores(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('atendimentos', '0003_carregar_monitores_iniciais'),
+        ('atendimentos', '0005_ajuste_aluno_monitor_opcional'),
     ]
 
     operations = [
