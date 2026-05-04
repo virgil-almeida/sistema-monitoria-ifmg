@@ -99,6 +99,7 @@ class Command(BaseCommand):
                     "email": f"{username}@ifmg.edu.br",
                     "perfil": "monitor",
                     "password": make_password("monitor123"),
+                    "deve_trocar_senha": True,
                 },
             )
             if not user_criado and usuario.perfil != "monitor":
