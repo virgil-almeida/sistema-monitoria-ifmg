@@ -20,7 +20,7 @@ services:
     build: .
     restart: unless-stopped
     command: >
-      sh -c "python manage.py migrate --noinput --settings=monitoria_ifmg.production_settings &&
+      sh -c "python manage.py makemigrations --merge && python manage.py migrate --noinput --settings=monitoria_ifmg.production_settings &&
              python manage.py collectstatic --noinput --settings=monitoria_ifmg.production_settings &&
              gunicorn monitoria_ifmg.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     ports:
