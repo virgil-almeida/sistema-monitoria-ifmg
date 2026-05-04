@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('atendimentos', '0005_ajuste_aluno_monitor_opcional'),
-        ('accounts', '0001_initial'), # Garante que o modelo Usuario base exista
+        ('accounts', '0002_usuario_deve_trocar_senha'),
     ]
 
     operations = [
