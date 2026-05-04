@@ -34,7 +34,7 @@ def carregar_monitores(apps, schema_editor):
             nome_disciplina = " - ".join(partes[1:-1])
 
             # 1. Criar ou obter o Usuário para o Monitor
-            usuario, _ = Usuario.objects.get_or_create(
+            usuario, created = Usuario.objects.get_or_create(
                 username=matricula,
                 defaults={
                     'first_name': nome[:30],
@@ -44,6 +44,11 @@ def carregar_monitores(apps, schema_editor):
                     'deve_trocar_senha': True
                 }
             )
+            
+            # Garante que o perfil esteja correto se o usuário já existia
+            if not created and usuario.perfil != 'monitor':
+                usuario.perfil = 'monitor'
+                usuario.save()
 
             # 2. Garantir que a Disciplina e Turma existam
             disciplina, _ = Disciplina.objects.get_or_create(
