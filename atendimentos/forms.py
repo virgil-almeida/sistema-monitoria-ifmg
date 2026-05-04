@@ -1,3 +1,5 @@
+import random
+from django.template.context_processors import request
 from django import forms
 
 from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
@@ -21,6 +23,7 @@ class AlunoForm(forms.ModelForm):
         mon_field = MonitorChoiceField(
             queryset=Monitor.objects.none(),
             label="Disciplina/Turma",
+            required=False,
         )
         self.fields["monitor"] = mon_field
 
