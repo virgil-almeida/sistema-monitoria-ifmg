@@ -37,7 +37,7 @@ def remover_fixtures(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('atendimentos', '0003_carregar_monitores_iniciais'),
+        ('atendimentos', '0007_carregar_monitores_iniciais'),
     ]
 
     operations = [
