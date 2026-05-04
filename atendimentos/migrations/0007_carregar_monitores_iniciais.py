@@ -13,6 +13,7 @@ def carregar_monitores(apps, schema_editor):
     fixture_path = os.path.join(settings.BASE_DIR, 'atendimentos', 'fixtures', 'monitores_iniciais.json')
     
     if not os.path.exists(fixture_path):
+        print(f"\n [!] Fixture não encontrada em: {fixture_path}")
         return
 
     with open(fixture_path, 'r', encoding='utf-8') as f:
@@ -20,6 +21,8 @@ def carregar_monitores(apps, schema_editor):
 
     # Precisamos de um professor para criar turmas caso elas não existam
     professor = Usuario.objects.filter(perfil='professor').first()
+    
+    monitores_criados = 0
 
     for item in dados:
         linha_bruta = item[0]
@@ -44,7 +47,7 @@ def carregar_monitores(apps, schema_editor):
 
             # 2. Garantir que a Disciplina e Turma existam
             disciplina, _ = Disciplina.objects.get_or_create(
-                nome__icontains=nome_disciplina,
+                nome=nome_disciplina,
                 defaults={'nome': nome_disciplina, 'codigo': matricula[:6], 'curso': 'Geral'}
             )
             
@@ -63,6 +66,9 @@ def carregar_monitores(apps, schema_editor):
                     turma=turma,
                     defaults={'ativo': True}
                 )
+                monitores_criados += 1
+
+    print(f"\n [OK] {monitores_criados} monitores processados com sucesso.")
 
 def remover_monitores(apps, schema_editor):
     Monitor = apps.get_model('atendimentos', 'Monitor')

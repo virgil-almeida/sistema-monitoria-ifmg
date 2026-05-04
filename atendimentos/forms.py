@@ -51,7 +51,7 @@ class AtendimentoIndividualForm(forms.ModelForm):
 
     class Meta:
         model = Atendimento
-        fields = ("data_hora", "duracao_min", "topico", "observacoes")
+        fields = ("monitor", "data_hora", "duracao_min", "topico", "observacoes")
         widgets = {
             "data_hora": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "observacoes": forms.Textarea(attrs={"rows": 3}),
