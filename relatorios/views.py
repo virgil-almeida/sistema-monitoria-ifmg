@@ -88,29 +88,24 @@ def dashboard_professor(request):
 
 @perfil_requerido("professor")
 def historico_aluno(request):
-    _, monitores = _get_professor_monitorias(request.user)
-    alunos_qs = Aluno.objects.filter(
-        Q(monitor__in=monitores) |
-        Q(atendimentos__monitor__in=monitores) |
-        Q(tutorias_grupo__atendimento__monitor__in=monitores)
-    ).distinct()
-
     q = request.GET.get("q", "").strip()
     aluno_selecionado = None
     atendimentos = None
     total_atendimentos = 0
 
     if q:
-        aluno_selecionado = alunos_qs.filter(Q(nome__icontains=q) | Q(matricula__icontains=q)).first()
+        aluno_selecionado = Aluno.objects.filter(
+            Q(nome__icontains=q) | Q(matricula__icontains=q)
+        ).first()
         if aluno_selecionado:
             atendimentos = (
-                Atendimento.objects.filter(monitor__in=monitores)
-                .filter(
+                Atendimento.objects.filter(
                     Q(aluno=aluno_selecionado) |
                     Q(tutoria_grupo__alunos=aluno_selecionado)
                 )
                 .distinct()
                 .select_related("monitor__usuario", "disciplina", "aluno")
+                .prefetch_related("tutoria_grupo__alunos")
                 .order_by("data_hora")
             )
             total_atendimentos = atendimentos.count()
