@@ -89,7 +89,11 @@ def dashboard_professor(request):
 @perfil_requerido("professor")
 def historico_aluno(request):
     _, monitores = _get_professor_monitorias(request.user)
-    alunos_qs = Aluno.objects.filter(monitor__in=monitores)
+    alunos_qs = Aluno.objects.filter(
+        Q(monitor__in=monitores) |
+        Q(atendimentos__monitor__in=monitores) |
+        Q(tutorias_grupo__atendimento__monitor__in=monitores)
+    ).distinct()
 
     q = request.GET.get("q", "").strip()
     aluno_selecionado = None
@@ -186,7 +190,11 @@ def ranking_dificuldades(request):
 @perfil_requerido("professor")
 def relatorio_avancado(request):
     _, monitores = _get_professor_monitorias(request.user)
-    qs = Atendimento.objects.filter(monitor__in=monitores).select_related("aluno", "disciplina", "monitor__usuario")
+    qs = (
+        Atendimento.objects.filter(monitor__in=monitores)
+        .select_related("aluno", "disciplina", "monitor__usuario")
+        .prefetch_related("tutoria_grupo__alunos")
+    )
 
     periodo_inicio = _parse_date(request.GET.get("data_inicio", ""))
     periodo_fim = _parse_date(request.GET.get("data_fim", ""))
@@ -260,7 +268,11 @@ def exportar_pdf(request):
     from reportlab.pdfgen import canvas
 
     _, monitores = _get_professor_monitorias(request.user)
-    qs = Atendimento.objects.filter(monitor__in=monitores).select_related("aluno", "disciplina", "monitor__usuario")
+    qs = (
+        Atendimento.objects.filter(monitor__in=monitores)
+        .select_related("aluno", "disciplina", "monitor__usuario")
+        .prefetch_related("tutoria_grupo__alunos")
+    )
 
     periodo_inicio = _parse_date(request.GET.get("data_inicio", ""))
     periodo_fim = _parse_date(request.GET.get("data_fim", ""))
@@ -313,12 +325,18 @@ def exportar_pdf(request):
 
     data = [["Data/Hora", "Tipo", "Monitor", "Aluno", "Disciplina", "Duração (min)", "Tópico"]]
     for a in qs[:200]:  # evita PDF gigantescos em teste
+        if a.aluno:
+            aluno_cell = a.aluno.nome
+        else:
+            tg = getattr(a, "tutoria_grupo", None)
+            aluno_cell = ", ".join(al.nome for al in tg.alunos.all()) if tg else "-"
+            aluno_cell = aluno_cell or "-"
         data.append(
             [
                 a.data_hora.strftime("%d/%m/%Y %H:%M"),
                 "Individual" if a.tipo == Atendimento.TIPO_INDIVIDUAL else "Grupo",
                 a.monitor.usuario.username,
-                a.aluno.nome if a.aluno else "-",
+                aluno_cell,
                 a.disciplina.codigo,
                 str(a.duracao_min),
                 a.topico,

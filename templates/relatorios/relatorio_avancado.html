@@ -87,7 +87,17 @@
                   {% endif %}
                 </td>
                 <td>{{ a.monitor.usuario.username }}</td>
-                <td>{% if a.aluno %}{{ a.aluno.nome }}{% else %}-{% endif %}</td>
+                <td>
+                  {% if a.aluno %}
+                    {{ a.aluno.nome }}
+                  {% elif a.tipo == 'grupo' and a.tutoria_grupo %}
+                    {% with alunos_grupo=a.tutoria_grupo.alunos.all %}
+                      {% if alunos_grupo %}
+                        {% for al in alunos_grupo %}{{ al.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                      {% else %}-{% endif %}
+                    {% endwith %}
+                  {% else %}-{% endif %}
+                </td>
                 <td>{{ a.disciplina.codigo }}</td>
                 <td>{{ a.duracao_min }} min</td>
                 <td>{{ a.topico }}</td>

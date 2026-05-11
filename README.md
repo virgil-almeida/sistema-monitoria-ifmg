@@ -9,6 +9,106 @@ Stack: `Django` + `PostgreSQL` + `AdminLTE 3` + relatórios (PDF).
 - Python 3.11+ (testado com 3.12)
 - PostgreSQL
 
+## Início rápido com Docker (recomendado)
+
+A forma mais simples de rodar a aplicação em produção ou localmente é via Docker Compose, usando o arquivo `docker-compose.prod.yml`.
+
+### Pré-requisitos
+
+- [Docker](https://docs.docker.com/get-docker/) 24+
+- [Docker Compose](https://docs.docker.com/compose/install/) v2 (geralmente já incluso no Docker Desktop)
+
+### 1. Configurar variáveis de ambiente
+
+Copie o arquivo de exemplo e preencha os valores:
+
+```bash
+cp .env.example .env
+```
+
+Edite o `.env` com as variáveis obrigatórias:
+
+```env
+# Django
+SECRET_KEY=sua-chave-secreta-longa-e-aleatoria
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Banco de dados (deve coincidir com as variáveis do Postgres abaixo)
+DB_NAME=monitoria
+DB_USER=monitoria
+DB_PASSWORD=sua-senha-segura
+DB_HOST=monitoria-db
+DB_PORT=5432
+
+# Postgres (usado pelo container do banco)
+POSTGRES_DB=monitoria
+POSTGRES_USER=monitoria
+POSTGRES_PASSWORD=sua-senha-segura
+```
+
+> `DB_HOST` deve ser `monitoria-db` (nome do serviço no Compose), não `localhost`.
+
+### 2. Subir os containers
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+O comando irá:
+1. Construir a imagem da aplicação a partir do `Dockerfile`
+2. Subir o banco PostgreSQL 16 e aguardar o healthcheck
+3. Executar `migrate` e `collectstatic` automaticamente
+4. Iniciar o Gunicorn na porta `8000` (exposta como `8004` no host)
+
+Acompanhe os logs em tempo real:
+
+```bash
+docker compose -f docker-compose.prod.yml logs -f
+```
+
+### 3. Criar o usuário administrador
+
+Com os containers rodando, execute:
+
+```bash
+docker compose -f docker-compose.prod.yml exec monitoria-web \
+  python manage.py createsuperuser \
+  --settings=monitoria_ifmg.production_settings
+```
+
+Após criar, acesse `/admin/`, localize o usuário e defina o campo **perfil** como `admin`.
+
+### 4. Acessar a aplicação
+
+| Endereço | Descrição |
+|----------|-----------|
+| `http://localhost:8004/` | Aplicação principal |
+| `http://localhost:8004/admin/` | Django Admin |
+| `http://localhost:8004/accounts/login/` | Tela de login |
+
+### Comandos úteis
+
+```bash
+# Parar os containers (preserva dados)
+docker compose -f docker-compose.prod.yml down
+
+# Parar e remover volumes (apaga o banco)
+docker compose -f docker-compose.prod.yml down -v
+
+# Reconstruir apenas a imagem da aplicação
+docker compose -f docker-compose.prod.yml up -d --build monitoria-web
+
+# Executar migrations manualmente
+docker compose -f docker-compose.prod.yml exec monitoria-web \
+  python manage.py migrate --settings=monitoria_ifmg.production_settings
+
+# Abrir shell Django
+docker compose -f docker-compose.prod.yml exec monitoria-web \
+  python manage.py shell --settings=monitoria_ifmg.production_settings
+```
+
+---
+
 ## Instalação local
 
 1. Criar ambiente virtual:
