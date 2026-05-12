@@ -10,7 +10,7 @@ class Usuario(AbstractUser):
     ]
 
     perfil = models.CharField(max_length=20, choices=PERFIL_CHOICES, blank=True, null=True)
+    deve_trocar_senha = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return f"{self.username} ({self.perfil})"
-

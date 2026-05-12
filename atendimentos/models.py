@@ -23,13 +23,18 @@ class Monitor(models.Model):
 
 
 class Aluno(models.Model):
-    monitor = models.ForeignKey(Monitor, on_delete=models.CASCADE, related_name="alunos")
+    monitor = models.ForeignKey(
+        Monitor,
+        on_delete=models.CASCADE,
+        related_name="alunos",
+        null=True,
+        blank=True,
+    )
     nome = models.CharField(max_length=200)
-    matricula = models.CharField(max_length=50)
+    matricula = models.CharField(max_length=50, unique=True)
     email = models.EmailField(blank=True, null=True)
 
     class Meta:
-        unique_together = ("monitor", "matricula")
         ordering = ["nome"]
 
     def __str__(self) -> str:
@@ -83,4 +88,3 @@ class TutoriaGrupo(models.Model):
     def clean(self):
         if self.numero_participantes < 2:
             raise ValidationError({"numero_participantes": "Número de participantes deve ser >= 2."})
-

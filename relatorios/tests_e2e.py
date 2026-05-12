@@ -55,6 +55,7 @@ class E2EFluxo1MonitorAtendimentoIndividual(TestCase):
         resp = self.client.post(
             reverse("atendimentos:criar_atendimento_individual"),
             {
+                "monitor": self.monitor.id,
                 "aluno": "",
                 "novo_aluno_nome": "Fernanda",
                 "novo_aluno_matricula": "F001",
@@ -73,6 +74,7 @@ class E2EFluxo1MonitorAtendimentoIndividual(TestCase):
             self.client.post(
                 reverse("atendimentos:criar_atendimento_individual"),
                 {
+                    "monitor": self.monitor.id,
                     "aluno": "",
                     "novo_aluno_nome": "Fernanda2",
                     "novo_aluno_matricula": "F002",
@@ -136,6 +138,7 @@ class E2EFluxo2GrupoProfessorDashboard(TestCase):
         resp = self.client.post(
             reverse("atendimentos:criar_atendimento_grupo"),
             {
+                "monitor": self.monitor.id,
                 "data_hora": dt,
                 "duracao_min": 90,
                 "topico": "Leis de Newton",
@@ -322,10 +325,12 @@ class E2EFluxo4AdminCadastraDisciplinaEVinculaMonitor(TestCase):
         self.assertEqual(resp_form.status_code, 200)
 
         # 7. Monitor registra um atendimento inline
+        monitor = Monitor.objects.get(usuario=self.monitor_user)
         dt = timezone.now().strftime("%Y-%m-%dT%H:%M")
         resp_post = self.client.post(
             reverse("atendimentos:criar_atendimento_individual"),
             {
+                "monitor": monitor.id,
                 "aluno": "",
                 "novo_aluno_nome": "Helena",
                 "novo_aluno_matricula": "H001",

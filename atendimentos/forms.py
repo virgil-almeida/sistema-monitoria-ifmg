@@ -1,3 +1,5 @@
+import random
+from django.template.context_processors import request
 from django import forms
 
 from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
@@ -21,6 +23,7 @@ class AlunoForm(forms.ModelForm):
         mon_field = MonitorChoiceField(
             queryset=Monitor.objects.none(),
             label="Disciplina/Turma",
+            required=False,
         )
         self.fields["monitor"] = mon_field
 
@@ -48,7 +51,7 @@ class AtendimentoIndividualForm(forms.ModelForm):
 
     class Meta:
         model = Atendimento
-        fields = ("data_hora", "duracao_min", "topico", "observacoes")
+        fields = ("monitor", "data_hora", "duracao_min", "topico", "observacoes")
         widgets = {
             "data_hora": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "observacoes": forms.Textarea(attrs={"rows": 3}),
@@ -57,9 +60,11 @@ class AtendimentoIndividualForm(forms.ModelForm):
     def __init__(self, *args, monitores=None, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Permite visualizar todos os alunos cadastrados no sistema
+        self.fields["aluno"].queryset = Aluno.objects.all().order_by("nome")
+
         if monitores is not None:
             self.fields["monitor"].queryset = monitores
-            self.fields["aluno"].queryset = Aluno.objects.filter(monitor__in=monitores)
 
         for field in self.fields.values():
             if not isinstance(field.widget, forms.CheckboxInput):
@@ -90,7 +95,7 @@ class AtendimentoGrupoForm(forms.Form):
         help_text="Total de participantes (incluindo os não cadastrados).",
     )
     alunos = forms.ModelMultipleChoiceField(
-        queryset=Aluno.objects.none(),
+        queryset=Aluno.objects.all().order_by("nome"),
         required=False,
         widget=forms.SelectMultiple(attrs={"size": "8"}),
         label="Alunos presentes",
@@ -111,9 +116,11 @@ class AtendimentoGrupoForm(forms.Form):
 
     def __init__(self, *args, monitores=None, **kwargs):
         super().__init__(*args, **kwargs)
+        # Permite visualizar todos os alunos cadastrados no sistema
+        self.fields["alunos"].queryset = Aluno.objects.all().order_by("nome")
+
         if monitores is not None:
             self.fields["monitor"].queryset = monitores
-            self.fields["alunos"].queryset = Aluno.objects.filter(monitor__in=monitores).order_by("nome")
 
         for field in self.fields.values():
             if not isinstance(field.widget, (forms.CheckboxInput, forms.SelectMultiple)):
