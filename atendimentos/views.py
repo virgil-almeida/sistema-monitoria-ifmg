@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -26,6 +28,7 @@ from atendimentos.models import (
     Atendimento,
     Monitor,
     ParticipanteSessao,
+    PlanoSemana,
     SessaoMonitoria,
     TutoriaGrupo,
 )
@@ -523,3 +526,88 @@ class SessoesListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         monitors = _get_monitors_or_forbidden(self.request)
         return SessaoMonitoria.objects.filter(monitor__in=monitors).select_related("monitor__turma__disciplina")
+
+
+# ── Planejamento do professor — visão do monitor ───────────────────────────────
+
+def _semana_inicio(d):
+    return d - timedelta(days=d.weekday())
+
+
+@perfil_requerido("monitor")
+def meu_planejamento(request):
+    monitors = _get_monitors_or_forbidden(request)
+
+    # Seleciona o Monitor (turma) ativo
+    monitor_id = request.GET.get("monitor")
+    if monitor_id:
+        monitor_sel = get_object_or_404(Monitor, pk=monitor_id, usuario=request.user, ativo=True)
+    else:
+        monitor_sel = monitors.first()
+
+    # Semana selecionada
+    semana_str = request.GET.get("semana")
+    hoje = date.today()
+    semana_atual = _semana_inicio(hoje)
+    try:
+        semana_selecionada = date.fromisoformat(semana_str) if semana_str else semana_atual
+    except ValueError:
+        semana_selecionada = semana_atual
+
+    # Semanas: 8 passadas + atual + 2 futuras
+    semanas = [semana_atual - timedelta(weeks=i) for i in range(8, -3, -1)]
+
+    planos_existentes = {}
+    plano_selecionado = None
+    atendimentos_semana = []
+    preparacoes_semana = []
+
+    if monitor_sel:
+        planos_existentes = {
+            p.semana_inicio: p
+            for p in PlanoSemana.objects.filter(turma=monitor_sel.turma)
+        }
+        plano_selecionado = planos_existentes.get(semana_selecionada)
+
+        semana_fim = semana_selecionada + timedelta(days=6)
+        atendimentos_semana = list(
+            Atendimento.objects.filter(
+                monitor=monitor_sel,
+                data_hora__date__gte=semana_selecionada,
+                data_hora__date__lte=semana_fim,
+            ).select_related("aluno", "disciplina")
+        )
+        preparacoes_semana = list(
+            AtividadePreparacao.objects.filter(
+                monitor=monitor_sel,
+                data__gte=semana_selecionada,
+                data__lte=semana_fim,
+            )
+        )
+
+    semanas_info = [
+        {
+            "inicio": s,
+            "fim": s + timedelta(days=6),
+            "tem_plano": s in planos_existentes,
+            "ativa": s == semana_selecionada,
+        }
+        for s in semanas
+    ]
+
+    total_min = (
+        sum(a.duracao_min for a in atendimentos_semana)
+        + sum(p.duracao_min for p in preparacoes_semana)
+    )
+
+    return render(request, "atendimentos/meu_planejamento.html", {
+        "monitors": monitors,
+        "monitor_sel": monitor_sel,
+        "semanas_info": semanas_info,
+        "semana_selecionada": semana_selecionada,
+        "semana_fim": semana_selecionada + timedelta(days=6),
+        "plano_selecionado": plano_selecionado,
+        "atendimentos_semana": atendimentos_semana,
+        "preparacoes_semana": preparacoes_semana,
+        "total_min": total_min,
+    })

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Meu planejamento{% endblock %}
+{% block h1 %}Meu planejamento{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item active">Meu planejamento</li>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .semana-item { border-left: 3px solid transparent; }
+  .semana-item:hover { background: #f8f9fa; }
+  .semana-item.ativa { border-left-color: #007bff; background: #e9f0ff; }
+  .dot-plano { width: 8px; height: 8px; border-radius: 50%; background: #28a745;
+               display: inline-block; margin-right: 4px; vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if monitors|length > 1 %}
+  <div class="mb-3">
+    <form method="get" class="form-inline">
+      <label class="mr-2 font-weight-bold">Turma:</label>
+      <select name="monitor" class="form-control mr-2" onchange="this.form.submit()">
+        {% for m in monitors %}
+          <option value="{{ m.pk }}" {% if monitor_sel.pk == m.pk %}selected{% endif %}>
+            {{ m.turma }}
+          </option>
+        {% endfor %}
+      </select>
+      {% if semana_selecionada %}
+        <input type="hidden" name="semana" value="{{ semana_selecionada|date:'Y-m-d' }}">
+      {% endif %}
+    </form>
+  </div>
+{% endif %}
+
+{% if monitor_sel %}
+<div class="row">
+
+  <!-- Lista de semanas -->
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-header py-2"><h6 class="mb-0">Semanas</h6></div>
+      <div class="card-body p-0" style="max-height:70vh; overflow-y:auto;">
+        <ul class="list-group list-group-flush">
+          {% for s in semanas_info %}
+            <li class="list-group-item semana-item px-3 py-2 {% if s.ativa %}ativa{% endif %}">
+              <a href="?{% if monitors|length > 1 %}monitor={{ monitor_sel.pk }}&{% endif %}semana={{ s.inicio|date:'Y-m-d' }}"
+                 class="d-block text-decoration-none text-dark">
+                {% if s.tem_plano %}<span class="dot-plano" title="Plano do professor"></span>{% endif %}
+                <small class="text-muted">{{ s.inicio|date:"d/m" }} – {{ s.fim|date:"d/m/Y" }}</small>
+                {% if s.ativa %}<br><strong>&#9656; Semana atual</strong>{% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conteúdo da semana -->
+  <div class="col-md-9">
+
+    <div class="card card-outline card-primary mb-3">
+      <div class="card-header">
+        <h3 class="card-title">
+          {{ semana_selecionada|date:"d/m/Y" }} – {{ semana_fim|date:"d/m/Y" }}
+        </h3>
+        <div class="card-tools">
+          <small class="text-muted">{{ monitor_sel.turma }}</small>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <!-- Planejamento do professor -->
+        <h6 class="text-uppercase text-muted small mb-2">
+          <i class="fas fa-clipboard-list mr-1"></i> Planejamento do professor
+        </h6>
+        {% if plano_selecionado %}
+          <div class="border-left border-primary pl-3 mb-4" style="white-space:pre-wrap">{{ plano_selecionado.planejamento }}</div>
+        {% else %}
+          <p class="text-muted mb-4"><em>Nenhum planejamento registrado para esta semana.</em></p>
+        {% endif %}
+
+        <hr>
+
+        <!-- Realizado -->
+        <h6 class="text-uppercase text-muted small mb-2">
+          <i class="fas fa-check-circle mr-1"></i> Realizado nesta semana
+          {% if total_min %}
+            <span class="badge badge-primary ml-1">
+              {% widthratio total_min 60 1 %}h
+              — {{ total_min }} min total
+            </span>
+          {% endif %}
+        </h6>
+
+        {% if atendimentos_semana %}
+          <p class="mb-1 small text-muted">Atendimentos</p>
+          <ul class="list-unstyled pl-3 mb-3">
+            {% for a in atendimentos_semana %}
+              <li class="mb-1">
+                <i class="fas fa-circle fa-xs mr-1 text-primary"></i>
+                {{ a.data_hora|date:"d/m H:i" }} —
+                {% if a.tipo == "individual" %}
+                  Individual: {{ a.aluno.nome }}
+                {% else %}
+                  Grupo
+                {% endif %}
+                — {{ a.topico }}
+                <span class="text-muted">({{ a.duracao_min }} min)</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if preparacoes_semana %}
+          <p class="mb-1 small text-muted">Preparação</p>
+          <ul class="list-unstyled pl-3 mb-3">
+            {% for p in preparacoes_semana %}
+              <li class="mb-1">
+                <i class="fas fa-circle fa-xs mr-1 text-warning"></i>
+                {{ p.data|date:"d/m" }} — {{ p.descricao }}
+                <span class="text-muted">({{ p.duracao_min }} min)</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if not atendimentos_semana and not preparacoes_semana %}
+          <p class="text-muted small">Nenhuma atividade registrada nesta semana.</p>
+        {% endif %}
+
+      </div>
+      {% if total_min %}
+        <div class="card-footer text-right">
+          <strong>Total da semana: {{ total_min }} min</strong>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endif %}
+{% endblock %}
