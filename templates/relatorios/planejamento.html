@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Planejamento de monitoria{% endblock %}
+{% block h1 %}Planejamento de monitoria{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item active">Planejamento</li>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .semana-item { cursor: pointer; border-left: 3px solid transparent; }
+  .semana-item:hover { background: #f8f9fa; }
+  .semana-item.ativa { border-left-color: #007bff; background: #e9f0ff; }
+  .semana-item.tem-plano .badge-dot { display: inline-block; }
+  .badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #28a745; display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Seletor de turma -->
+<div class="mb-3">
+  <form method="get" class="form-inline">
+    <label class="mr-2 font-weight-bold">Turma:</label>
+    <select name="turma" class="form-control mr-2" onchange="this.form.submit()">
+      {% for t in turmas %}
+        <option value="{{ t.pk }}" {% if turma_selecionada.pk == t.pk %}selected{% endif %}>
+          {{ t }}
+        </option>
+      {% endfor %}
+    </select>
+    {% if semana_selecionada %}
+      <input type="hidden" name="semana" value="{{ semana_selecionada|date:'Y-m-d' }}">
+    {% endif %}
+  </form>
+</div>
+
+{% if turma_selecionada %}
+<div class="row">
+
+  <!-- Painel esquerdo: lista de semanas -->
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-header py-2">
+        <h6 class="mb-0">Semanas</h6>
+      </div>
+      <div class="card-body p-0" style="max-height:70vh; overflow-y:auto;">
+        <ul class="list-group list-group-flush">
+          {% for s in semanas_info %}
+            <li class="list-group-item semana-item px-3 py-2 {% if s.ativa %}ativa{% endif %} {% if s.tem_plano %}tem-plano{% endif %}">
+              <a href="?turma={{ turma_selecionada.pk }}&semana={{ s.inicio|date:'Y-m-d' }}"
+                 class="d-block text-decoration-none text-dark">
+                <span class="badge-dot mr-1" title="Plano salvo"></span>
+                <small class="d-block text-muted">{{ s.inicio|date:"d/m" }} – {{ s.fim|date:"d/m/Y" }}</small>
+                {% if s.ativa %}<strong>&#9656; Semana selecionada</strong>{% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    {% if monitores_turma %}
+      <div class="card mt-3">
+        <div class="card-header py-2">
+          <h6 class="mb-0">Monitores</h6>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for m in monitores_turma %}
+            <li class="list-group-item py-2 px-3">
+              <i class="fas fa-user-tie mr-1 text-muted"></i>
+              {{ m.usuario.get_full_name|default:m.usuario.username }}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Painel direito: editor de plano -->
+  <div class="col-md-9">
+    <div class="card card-outline card-primary">
+      <div class="card-header">
+        <h3 class="card-title">
+          Semana de {{ semana_selecionada|date:"d/m/Y" }} a {{ semana_fim|date:"d/m/Y" }}
+        </h3>
+        <div class="card-tools">
+          <a href="{% url 'relatorios:relatorio_planejamento' %}?turma={{ turma_selecionada.pk }}"
+             class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-chart-bar mr-1"></i> Ver relatório
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="turma" value="{{ turma_selecionada.pk }}">
+          <input type="hidden" name="semana" value="{{ semana_selecionada|date:'Y-m-d' }}">
+
+          <div class="form-group">
+            <label for="id_planejamento">
+              O que o monitor deve fazer nesta semana:
+            </label>
+            <textarea id="id_planejamento" name="planejamento" rows="10"
+                      class="form-control"
+                      placeholder="Descreva as atividades planejadas para o monitor nesta semana…">{{ plano_texto }}</textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save mr-1"></i> Salvar planejamento
+          </button>
+          {% if plano_texto %}
+            <button type="submit" name="planejamento" value=""
+                    class="btn btn-outline-danger ml-2"
+                    onclick="return confirm('Remover o planejamento desta semana?')">
+              Remover
+            </button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% else %}
+  <div class="alert alert-warning">Nenhuma turma encontrada. Verifique se você está cadastrado como professor de alguma turma.</div>
+{% endif %}
+{% endblock %}

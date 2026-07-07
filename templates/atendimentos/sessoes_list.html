@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Minhas sessões ao vivo{% endblock %}
+{% block h1 %}Minhas sessões ao vivo{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item active">Minhas sessões</li>
+{% endblock %}
+
+{% block content %}
+  <div class="mb-3">
+    <a href="{% url 'atendimentos:iniciar_sessao' %}" class="btn btn-success">
+      <i class="fas fa-play mr-1"></i> Nova sessão
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      {% if sessoes %}
+        <table class="table table-hover mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th>Data / Horário</th>
+              <th>Turma</th>
+              <th>Local</th>
+              <th>Participantes</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sessoes %}
+              <tr>
+                <td>{{ s.inicio|date:"d/m/Y H:i" }}</td>
+                <td>{{ s.monitor.turma }}</td>
+                <td>{{ s.local }}</td>
+                <td>{{ s.participantes.count }}</td>
+                <td>
+                  {% if s.status == "em_andamento" %}
+                    <span class="badge badge-success">Em andamento</span>
+                  {% else %}
+                    <span class="badge badge-secondary">Finalizada</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  {% if s.status == "em_andamento" %}
+                    <a href="{% url 'atendimentos:painel_sessao' uuid=s.uuid %}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-broadcast-tower mr-1"></i> Painel
+                    </a>
+                    <a href="{% url 'atendimentos:finalizar_sessao' uuid=s.uuid %}" class="btn btn-sm btn-outline-danger ml-1">
+                      Finalizar
+                    </a>
+                  {% else %}
+                    <a href="{% url 'atendimentos:painel_sessao' uuid=s.uuid %}" class="btn btn-sm btn-outline-secondary">
+                      Ver detalhes
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-broadcast-tower fa-2x mb-2 d-block"></i>
+          Nenhuma sessão ao vivo registrada ainda.
+          <a href="{% url 'atendimentos:iniciar_sessao' %}">Iniciar uma agora</a>.
+        </div>
+      {% endif %}
+    </div>
+    {% if is_paginated %}
+      <div class="card-footer">
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

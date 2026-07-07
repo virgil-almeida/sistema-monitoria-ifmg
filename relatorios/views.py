@@ -2,16 +2,17 @@ import base64
 import io
 from datetime import date, datetime, timedelta
 
+from django.contrib import messages
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncWeek
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from core.permissions import perfil_requerido
-from curriculum.models import Disciplina
+from curriculum.models import Disciplina, Turma
 from atendimentos.forms import AlunoForm
-from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
+from atendimentos.models import Aluno, AtividadePreparacao, Atendimento, Monitor, PlanoSemana, TutoriaGrupo
 
 
 def _get_professor_monitorias(professor):
@@ -355,4 +356,195 @@ def exportar_pdf(request):
 
     doc.build(elems)
     return response
+
+
+# ── Planejamento de monitoria ─────────────────────────────────────────────────
+
+def _semana_inicio(d):
+    """Retorna a segunda-feira da semana que contém a data d."""
+    return d - timedelta(days=d.weekday())
+
+
+@perfil_requerido("professor")
+def planejamento_monitoria(request):
+    turmas, _ = _get_professor_monitorias(request.user)
+
+    turma_id = request.GET.get("turma") or request.POST.get("turma")
+    turma_selecionada = None
+    if turma_id:
+        turma_selecionada = get_object_or_404(Turma, pk=turma_id, professor=request.user)
+    elif turmas.exists():
+        turma_selecionada = turmas.first()
+
+    # Semana selecionada (segunda-feira)
+    semana_str = request.GET.get("semana") or request.POST.get("semana")
+    hoje = date.today()
+    semana_atual = _semana_inicio(hoje)
+    try:
+        semana_selecionada = date.fromisoformat(semana_str) if semana_str else semana_atual
+    except ValueError:
+        semana_selecionada = semana_atual
+
+    # Gerar lista de semanas: 12 passadas + atual + 4 futuras
+    semanas = [semana_atual - timedelta(weeks=i) for i in range(12, -5, -1)]
+
+    # Buscar planos já salvos para a turma selecionada
+    planos_existentes = {}
+    monitores_turma = []
+    plano_selecionado = None
+    if turma_selecionada:
+        planos_existentes = {
+            p.semana_inicio: p
+            for p in PlanoSemana.objects.filter(turma=turma_selecionada)
+        }
+        monitores_turma = list(
+            Monitor.objects.filter(turma=turma_selecionada, ativo=True)
+            .select_related("usuario")
+        )
+        plano_selecionado = planos_existentes.get(semana_selecionada)
+
+    # Salvar planejamento
+    if request.method == "POST" and turma_selecionada:
+        planejamento_texto = request.POST.get("planejamento", "").strip()
+        if planejamento_texto:
+            PlanoSemana.objects.update_or_create(
+                turma=turma_selecionada,
+                semana_inicio=semana_selecionada,
+                defaults={"planejamento": planejamento_texto, "professor": request.user},
+            )
+        else:
+            PlanoSemana.objects.filter(
+                turma=turma_selecionada, semana_inicio=semana_selecionada
+            ).delete()
+        messages.success(request, "Planejamento salvo.")
+        return redirect(
+            f"{request.path}?turma={turma_selecionada.pk}&semana={semana_selecionada.isoformat()}"
+        )
+
+    semanas_info = [
+        {
+            "inicio": s,
+            "fim": s + timedelta(days=6),
+            "tem_plano": s in planos_existentes,
+            "ativa": s == semana_selecionada,
+        }
+        for s in semanas
+    ]
+
+    return render(request, "relatorios/planejamento.html", {
+        "turmas": turmas,
+        "turma_selecionada": turma_selecionada,
+        "semanas_info": semanas_info,
+        "semana_selecionada": semana_selecionada,
+        "semana_fim": semana_selecionada + timedelta(days=6),
+        "plano_texto": plano_selecionado.planejamento if plano_selecionado else "",
+        "monitores_turma": monitores_turma,
+    })
+
+
+@perfil_requerido("professor")
+def relatorio_planejamento(request):
+    turmas, _ = _get_professor_monitorias(request.user)
+
+    turma_id = request.GET.get("turma")
+    turma_selecionada = None
+    if turma_id:
+        turma_selecionada = get_object_or_404(Turma, pk=turma_id, professor=request.user)
+    elif turmas.exists():
+        turma_selecionada = turmas.first()
+
+    monitor_id = request.GET.get("monitor", "").strip()
+    data_inicio = _parse_date(request.GET.get("data_inicio")) or (date.today() - timedelta(weeks=8))
+    data_fim = _parse_date(request.GET.get("data_fim")) or date.today()
+
+    monitores_turma = []
+    monitor_selecionado = None
+    semanas_dados = []
+    total_geral_min = 0
+
+    if turma_selecionada:
+        monitores_turma = list(
+            Monitor.objects.filter(turma=turma_selecionada, ativo=True).select_related("usuario")
+        )
+        if monitor_id:
+            monitor_selecionado = get_object_or_404(Monitor, pk=monitor_id, turma=turma_selecionada)
+
+        monitores_report = [monitor_selecionado] if monitor_selecionado else monitores_turma
+
+        semana_ini_range = _semana_inicio(data_inicio)
+        semana_fim_range = _semana_inicio(data_fim)
+
+        planos = {
+            p.semana_inicio: p
+            for p in PlanoSemana.objects.filter(
+                turma=turma_selecionada,
+                semana_inicio__gte=semana_ini_range,
+                semana_inicio__lte=semana_fim_range,
+            )
+        }
+
+        atendimentos_list = list(
+            Atendimento.objects.filter(
+                monitor__in=monitores_report,
+                data_hora__date__gte=data_inicio,
+                data_hora__date__lte=data_fim,
+            )
+            .select_related("aluno", "disciplina", "monitor__usuario")
+            .prefetch_related("tutoria_grupo__alunos")
+        )
+
+        preparacoes_list = list(
+            AtividadePreparacao.objects.filter(
+                monitor__in=monitores_report,
+                data__gte=data_inicio,
+                data__lte=data_fim,
+            ).select_related("monitor__usuario")
+        )
+
+        semana = semana_ini_range
+        while semana <= semana_fim_range:
+            semana_fim_week = semana + timedelta(days=6)
+            dados = {
+                "semana_inicio": semana,
+                "semana_fim": semana_fim_week,
+                "plano": planos.get(semana),
+                "por_monitor": [],
+                "total_semana_min": 0,
+            }
+            for m in monitores_report:
+                ats = [
+                    a for a in atendimentos_list
+                    if a.monitor_id == m.pk and semana <= a.data_hora.date() <= semana_fim_week
+                ]
+                preps = [
+                    p for p in preparacoes_list
+                    if p.monitor_id == m.pk and semana <= p.data <= semana_fim_week
+                ]
+                total_at = sum(a.duracao_min for a in ats)
+                total_prep = sum(p.duracao_min for p in preps)
+                total = total_at + total_prep
+                dados["por_monitor"].append({
+                    "monitor": m,
+                    "atendimentos": ats,
+                    "preparacoes": preps,
+                    "total_atendimentos_min": total_at,
+                    "total_preparacao_min": total_prep,
+                    "total_min": total,
+                })
+                dados["total_semana_min"] += total
+
+            total_geral_min += dados["total_semana_min"]
+            semanas_dados.append(dados)
+            semana += timedelta(weeks=1)
+
+    return render(request, "relatorios/relatorio_planejamento.html", {
+        "turmas": turmas,
+        "turma_selecionada": turma_selecionada,
+        "monitores_turma": monitores_turma,
+        "monitor_selecionado": monitor_selecionado,
+        "semanas_dados": semanas_dados,
+        "total_geral_min": total_geral_min,
+        "data_inicio": data_inicio,
+        "data_fim": data_fim,
+    })
 

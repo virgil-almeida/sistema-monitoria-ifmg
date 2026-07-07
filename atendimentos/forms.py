@@ -2,7 +2,7 @@ import random
 from django.template.context_processors import request
 from django import forms
 
-from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
+from atendimentos.models import Aluno, AtividadePreparacao, Atendimento, Monitor, TutoriaGrupo
 from curriculum.models import Disciplina
 
 
@@ -126,3 +126,103 @@ class AtendimentoGrupoForm(forms.Form):
             if not isinstance(field.widget, (forms.CheckboxInput, forms.SelectMultiple)):
                 field.widget.attrs.setdefault("class", "form-control")
         self.fields["alunos"].widget.attrs.setdefault("class", "form-control")
+
+
+class IniciarSessaoForm(forms.Form):
+    monitor = MonitorChoiceField(
+        queryset=Monitor.objects.none(),
+        label="Disciplina/Turma",
+    )
+    local = forms.CharField(max_length=200, label="Espaço / Local")
+    objetivo = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 3}),
+        label="Objetivo do encontro",
+    )
+
+    def __init__(self, *args, monitores=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if monitores is not None:
+            self.fields["monitor"].queryset = monitores
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+
+class RegistrarParticipacaoForm(forms.Form):
+    nome = forms.CharField(max_length=200, label="Nome completo")
+    matricula = forms.CharField(max_length=50, label="Matrícula")
+
+    def __init__(self, *args, sessao=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._sessao = sessao
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+    def clean_matricula(self):
+        matricula = self.cleaned_data["matricula"].strip()
+        if self._sessao is not None:
+            from atendimentos.models import ParticipanteSessao
+            registro = ParticipanteSessao.objects.filter(
+                sessao=self._sessao, matricula=matricula
+            ).first()
+            if registro:
+                hora = registro.registrado_em.strftime("%H:%M")
+                raise forms.ValidationError(
+                    f"Esta matrícula já registrou presença nesta sessão às {hora}."
+                )
+        return matricula
+
+
+class FinalizarSessaoForm(forms.Form):
+    topico = forms.CharField(max_length=200, label="Tópicos abordados")
+    duracao_min = forms.IntegerField(min_value=1, label="Duração (minutos)")
+    numero_participantes = forms.IntegerField(min_value=0, label="Total de participantes")
+    observacoes = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 3}),
+        required=False,
+        label="Observações gerais",
+    )
+
+    def __init__(self, *args, participantes=None, duracao_sugerida=None, n_participantes=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if duracao_sugerida is not None:
+            self.fields["duracao_min"].initial = duracao_sugerida
+        if n_participantes is not None:
+            self.fields["numero_participantes"].initial = n_participantes
+
+        if participantes:
+            for p in participantes:
+                self.fields[f"comentario_{p.pk}"] = forms.CharField(
+                    required=False,
+                    label=f"Comentário — {p.nome}",
+                    widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"}),
+                )
+
+        for name, field in self.fields.items():
+            if not name.startswith("comentario_"):
+                field.widget.attrs.setdefault("class", "form-control")
+
+
+class AtividadePreparacaoForm(forms.ModelForm):
+    monitor = MonitorChoiceField(
+        queryset=Monitor.objects.none(),
+        label="Disciplina / Turma",
+    )
+
+    class Meta:
+        model = AtividadePreparacao
+        fields = ("monitor", "data", "duracao_min", "descricao")
+        widgets = {
+            "data": forms.DateInput(attrs={"type": "date"}),
+            "descricao": forms.TextInput(),
+        }
+        labels = {
+            "duracao_min": "Duração (minutos)",
+            "descricao": "Descrição",
+        }
+
+    def __init__(self, *args, monitores=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if monitores is not None:
+            self.fields["monitor"].queryset = monitores
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")

@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registrar presença — Monitoria IFMG</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" />
+  <style>
+    body { background: #f4f6f9; }
+    .card-check { max-width: 440px; margin: 60px auto; }
+    .ifmg-header { background: #1a4731; color: #fff; border-radius: .375rem .375rem 0 0; padding: 1.25rem 1.5rem; }
+    .ifmg-header h4 { margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="card-check card shadow-sm">
+    <div class="ifmg-header">
+      <h4><i class="mr-2">📋</i>Monitoria IFMG</h4>
+      <small>Registro de presença</small>
+    </div>
+    <div class="card-body">
+
+      {% if encerrada %}
+        <div class="alert alert-warning">
+          <strong>Sessão encerrada.</strong><br>
+          Esta monitoria já foi finalizada e não está mais aceitando registros de presença.
+        </div>
+
+      {% elif aluno_cadastrado %}
+        {# Nome digitado não bate com o cadastro — pede confirmação #}
+        <div class="alert alert-warning">
+          <strong>Atenção:</strong> a matrícula
+          <strong>{{ form.matricula.value }}</strong>
+          está cadastrada no sistema com o nome:<br>
+          <span class="font-weight-bold text-dark">{{ aluno_cadastrado.nome }}</span>
+        </div>
+        <p class="text-muted small">
+          Se este for você, confirme abaixo e sua presença será registrada com o nome cadastrado.
+          Caso contrário, volte e corrija a matrícula.
+        </p>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="nome" value="{{ form.nome.value }}">
+          <input type="hidden" name="matricula" value="{{ form.matricula.value }}">
+          <input type="hidden" name="confirmar" value="1">
+          <button type="submit" class="btn btn-warning btn-block btn-lg">
+            Sim, sou {{ aluno_cadastrado.nome }} — confirmar presença
+          </button>
+        </form>
+        <a href="" class="btn btn-outline-secondary btn-block mt-2">Corrigir matrícula</a>
+
+      {% else %}
+        <div class="mb-4">
+          <p class="mb-1"><strong>Turma:</strong> {{ sessao.monitor.turma }}</p>
+          <p class="mb-1"><strong>Local:</strong> {{ sessao.local }}</p>
+          <p class="mb-0"><strong>Objetivo:</strong> {{ sessao.objetivo }}</p>
+        </div>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="form-group">
+            <label for="id_nome">Nome completo</label>
+            {{ form.nome }}
+            {% for error in form.nome.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="form-group">
+            <label for="id_matricula">Matrícula</label>
+            {{ form.matricula }}
+            {% for error in form.matricula.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-success btn-block btn-lg">
+            Registrar presença
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

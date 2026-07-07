@@ -67,6 +67,18 @@
               {% if user.is_authenticated %}
                 {% if user.perfil == 'monitor' %}
                   <li class="nav-item">
+                    <a href="{% url 'atendimentos:iniciar_sessao' %}" class="nav-link">
+                      <i class="nav-icon fas fa-broadcast-tower"></i>
+                      <p>Iniciar monitoria</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'atendimentos:minhas_sessoes' %}" class="nav-link">
+                      <i class="nav-icon fas fa-satellite-dish"></i>
+                      <p>Minhas sessões</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
                     <a href="{% url 'atendimentos:lista_meus_atendimentos' %}" class="nav-link">
                       <i class="nav-icon far fa-calendar-alt"></i>
                       <p>Meus atendimentos</p>
@@ -90,6 +102,12 @@
                       <p>Meus alunos</p>
                     </a>
                   </li>
+                  <li class="nav-item">
+                    <a href="{% url 'atendimentos:preparacao_list' %}" class="nav-link">
+                      <i class="nav-icon fas fa-book-open"></i>
+                      <p>Preparação</p>
+                    </a>
+                  </li>
                 {% elif user.perfil == 'professor' %}
                   <li class="nav-item">
                     <a href="{% url 'relatorios:dashboard_professor' %}" class="nav-link">
@@ -107,6 +125,18 @@
                     <a href="{% url 'relatorios:ranking_dificuldades' %}" class="nav-link">
                       <i class="nav-icon fas fa-layer-group"></i>
                       <p>Dificuldades</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'relatorios:planejamento_monitoria' %}" class="nav-link">
+                      <i class="nav-icon fas fa-calendar-check"></i>
+                      <p>Planejamento</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'relatorios:relatorio_planejamento' %}" class="nav-link">
+                      <i class="nav-icon fas fa-balance-scale"></i>
+                      <p>Planejado × Realizado</p>
                     </a>
                   </li>
                   <li class="nav-item">

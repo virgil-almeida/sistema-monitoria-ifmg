@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir atividade de preparação{% endblock %}
+{% block h1 %}Excluir atividade{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'atendimentos:preparacao_list' %}">Preparação</a></li>
+  <li class="breadcrumb-item active">Excluir</li>
+{% endblock %}
+
+{% block content %}
+<div class="card card-outline card-danger" style="max-width:500px">
+  <div class="card-body">
+    <p>Confirma a exclusão desta atividade de preparação?</p>
+    <dl class="row">
+      <dt class="col-4">Data</dt><dd class="col-8">{{ object.data|date:"d/m/Y" }}</dd>
+      <dt class="col-4">Descrição</dt><dd class="col-8">{{ object.descricao }}</dd>
+      <dt class="col-4">Duração</dt><dd class="col-8">{{ object.duracao_min }} min</dd>
+    </dl>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Confirmar exclusão</button>
+      <a href="{% url 'atendimentos:preparacao_list' %}" class="btn btn-secondary ml-2">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

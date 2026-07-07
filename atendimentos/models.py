@@ -1,5 +1,8 @@
+import uuid as uuid_lib
+
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from accounts.models import Usuario
 from curriculum.models import Disciplina, Turma
@@ -88,3 +91,80 @@ class TutoriaGrupo(models.Model):
     def clean(self):
         if self.numero_participantes < 2:
             raise ValidationError({"numero_participantes": "Número de participantes deve ser >= 2."})
+
+
+class SessaoMonitoria(models.Model):
+    STATUS_EM_ANDAMENTO = "em_andamento"
+    STATUS_FINALIZADA = "finalizada"
+    STATUS_CHOICES = [
+        (STATUS_EM_ANDAMENTO, "Em andamento"),
+        (STATUS_FINALIZADA, "Finalizada"),
+    ]
+
+    uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False)
+    monitor = models.ForeignKey(Monitor, on_delete=models.CASCADE, related_name="sessoes")
+    local = models.CharField(max_length=200)
+    objetivo = models.TextField()
+    inicio = models.DateTimeField(auto_now_add=True)
+    fim = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_EM_ANDAMENTO)
+
+    class Meta:
+        ordering = ["-inicio"]
+
+    def __str__(self) -> str:
+        return f"Sessão {self.monitor} - {self.inicio:%Y-%m-%d %H:%M}"
+
+    def duracao_minutos(self):
+        ref = self.fim or timezone.now()
+        return max(1, int((ref - self.inicio).total_seconds() / 60))
+
+
+class ParticipanteSessao(models.Model):
+    sessao = models.ForeignKey(SessaoMonitoria, on_delete=models.CASCADE, related_name="participantes")
+    nome = models.CharField(max_length=200)
+    matricula = models.CharField(max_length=50)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    comentario = models.TextField(blank=True)
+    aluno = models.ForeignKey(
+        Aluno, on_delete=models.SET_NULL, null=True, blank=True, related_name="participacoes_sessao"
+    )
+
+    class Meta:
+        unique_together = [("sessao", "matricula")]
+        ordering = ["registrado_em"]
+
+    def __str__(self) -> str:
+        return f"{self.nome} ({self.matricula})"
+
+
+class AtividadePreparacao(models.Model):
+    monitor = models.ForeignKey(Monitor, on_delete=models.CASCADE, related_name="atividades_preparacao")
+    data = models.DateField()
+    duracao_min = models.PositiveIntegerField()
+    descricao = models.CharField(max_length=300)
+
+    class Meta:
+        ordering = ["-data"]
+
+    def __str__(self) -> str:
+        return f"Preparação {self.monitor} — {self.data:%d/%m/%Y} ({self.duracao_min}min)"
+
+
+class PlanoSemana(models.Model):
+    turma = models.ForeignKey(Turma, on_delete=models.CASCADE, related_name="planos_semana")
+    semana_inicio = models.DateField()  # sempre a segunda-feira
+    planejamento = models.TextField()
+    professor = models.ForeignKey(
+        Usuario,
+        on_delete=models.PROTECT,
+        related_name="planos_semana",
+        limit_choices_to={"perfil": "professor"},
+    )
+
+    class Meta:
+        unique_together = [("turma", "semana_inicio")]
+        ordering = ["-semana_inicio"]
+
+    def __str__(self) -> str:
+        return f"Plano {self.turma} — {self.semana_inicio:%d/%m/%Y}"
