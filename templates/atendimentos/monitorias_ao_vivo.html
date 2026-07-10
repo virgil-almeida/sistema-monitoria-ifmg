@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="30">
+  <title>Monitorias ao vivo — Monitoria IFMG</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" />
+  <style>
+    body { background: #f4f6f9; }
+    .ifmg-header { background: #1a4731; color: #fff; padding: 1.5rem 1rem; }
+    .ifmg-header h1 { margin: 0; font-size: 1.4rem; }
+    .ifmg-header small { opacity: .85; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 1.25rem; }
+    .sessao-card { border-left: 5px solid #1a4731; }
+    .local-linha { font-size: 1.1rem; }
+    .empty-state { text-align: center; padding: 3.5rem 1rem; color: #6c757d; }
+    .empty-state .emoji { font-size: 3rem; }
+  </style>
+</head>
+<body>
+  <div class="ifmg-header text-center">
+    <h1>📍 Monitorias acontecendo agora</h1>
+    <small>Atualiza automaticamente a cada 30s — última atualização {{ agora|date:"H:i" }}</small>
+  </div>
+
+  <div class="wrap">
+    {% if sessoes %}
+      <p class="text-muted small mb-3">
+        {{ sessoes|length }} monitoria{{ sessoes|length|pluralize }} em andamento
+      </p>
+
+      {% for sessao in sessoes %}
+        <div class="card sessao-card shadow-sm mb-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <h5 class="card-title mb-1">{{ sessao.monitor.turma.disciplina.nome }}</h5>
+              <span class="badge badge-success">Em andamento</span>
+            </div>
+            <p class="text-muted mb-2">
+              {{ sessao.monitor.turma.disciplina.codigo }} · Turma {{ sessao.monitor.turma.semestre }}
+            </p>
+            <p class="mb-1 local-linha"><strong>📍 Local:</strong> {{ sessao.local }}</p>
+            <p class="mb-1">
+              <strong>Monitor:</strong>
+              {{ sessao.monitor.usuario.get_full_name|default:sessao.monitor.usuario.username }}
+            </p>
+            <p class="mb-1">
+              <strong>Início:</strong> {{ sessao.inicio|date:"H:i" }}
+              (em andamento há {{ sessao.duracao_minutos }} min)
+            </p>
+            {% if sessao.objetivo %}
+              <p class="mb-0 small text-muted"><strong>Objetivo:</strong> {{ sessao.objetivo }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="emoji">🕒</div>
+        <h5>Nenhuma monitoria em andamento agora</h5>
+        <p class="mb-0">Esta página atualiza sozinha — deixe aberta para ser avisado assim que alguma monitoria começar.</p>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -12,6 +12,7 @@ from atendimentos.views import (
     AtividadePreparacaoView,
     FinalizarSessaoView,
     IniciarSessaoView,
+    MonitoriasAoVivoView,
     PainelSessaoView,
     RegistrarParticipacaoView,
     SessoesListView,
@@ -33,6 +34,7 @@ urlpatterns = [
     path("preparacao/", AtividadePreparacaoView.as_view(), name="preparacao_list"),
     path("preparacao/<int:pk>/excluir/", AtividadePreparacaoDeleteView.as_view(), name="preparacao_delete"),
     # Fluxo ao vivo
+    path("ao-vivo/", MonitoriasAoVivoView.as_view(), name="monitorias_ao_vivo"),
     path("sessao/iniciar/", IniciarSessaoView.as_view(), name="iniciar_sessao"),
     path("sessao/", SessoesListView.as_view(), name="minhas_sessoes"),
     path("sessao/<uuid:uuid>/painel/", PainelSessaoView.as_view(), name="painel_sessao"),

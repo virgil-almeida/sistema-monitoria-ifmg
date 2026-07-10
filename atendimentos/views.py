@@ -345,6 +345,20 @@ class AtividadePreparacaoDeleteView(LoginRequiredMixin, DeleteView):
 
 # ── Fluxo ao vivo ─────────────────────────────────────────────────────────────
 
+class MonitoriasAoVivoView(View):
+    """Painel público (sem login) com as monitorias em andamento agora e seus locais."""
+
+    template_name = "atendimentos/monitorias_ao_vivo.html"
+
+    def get(self, request):
+        sessoes = (
+            SessaoMonitoria.objects.filter(status=SessaoMonitoria.STATUS_EM_ANDAMENTO)
+            .select_related("monitor__usuario", "monitor__turma__disciplina")
+            .order_by("monitor__turma__disciplina__nome", "local")
+        )
+        return render(request, self.template_name, {"sessoes": sessoes, "agora": timezone.now()})
+
+
 @method_decorator(perfil_requerido("monitor"), name="dispatch")
 class IniciarSessaoView(LoginRequiredMixin, FormView):
     template_name = "atendimentos/sessao_iniciar.html"
