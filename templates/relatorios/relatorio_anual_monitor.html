@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório anual{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{% url 'atendimentos:lista_meus_atendimentos' %}">Meus atendimentos</a></li><li class="breadcrumb-item active">Relatório anual</li>{% endblock %}
+{% block h1 %}Relatório anual de atendimentos{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-primary">
+    <div class="card-body">
+      <form method="get" class="form-inline mb-3">
+        <div class="form-group mr-2">
+          <label for="year" class="mr-2">Ano</label>
+          <select id="year" name="year" class="form-control">
+            {% for year in available_years %}
+              <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-secondary" type="submit">Atualizar</button>
+      </form>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <strong>Total de atendimentos:</strong> {{ total_count }}<br>
+          <strong>Total de horas:</strong> {{ total_hours|floatformat:2 }}
+        </div>
+        <a class="btn btn-success" href="{% url 'relatorios:exportar_pdf_relatorio_anual' %}?year={{ selected_year }}">
+          Exportar PDF
+        </a>
+      </div>
+
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered table-sm">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th>Atendimentos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in monthly_stats %}
+              <tr>
+                <td>{{ item.month }}</td>
+                <td>{{ item.total }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-sm">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Aluno</th>
+              <th>Disciplina</th>
+              <th>Duração</th>
+              <th>Tópico</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in atendimentos %}
+              <tr>
+                <td>{{ a.data_hora|date:"d/m/Y H:i" }}</td>
+                <td>
+                  {% if a.tipo == 'individual' %}
+                    <span class="badge badge-success">Individual</span>
+                  {% else %}
+                    <span class="badge badge-primary">Grupo</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if a.aluno %}
+                    {{ a.aluno.nome }}
+                  {% elif a.tipo == 'grupo' and a.tutoria_grupo %}
+                    {% with alunos_grupo=a.tutoria_grupo.alunos.all %}
+                      {% if alunos_grupo %}
+                        {% for al in alunos_grupo %}{{ al.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                      {% else %}-{% endif %}
+                    {% endwith %}
+                  {% else %}-{% endif %}
+                </td>
+                <td>{{ a.disciplina.codigo }}</td>
+                <td>{{ a.duracao_min }} min</td>
+                <td>{{ a.topico }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="text-center">Nenhum atendimento encontrado para este ano.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

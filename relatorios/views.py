@@ -3,7 +3,7 @@ import io
 from datetime import date, datetime, timedelta
 
 from django.db.models import Count, Q, Sum
-from django.db.models.functions import TruncWeek
+from django.db.models.functions import TruncMonth, TruncWeek
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -28,6 +28,21 @@ def _parse_date(value: str):
         return datetime.strptime(value, "%Y-%m-%d").date()
     except ValueError:
         return None
+
+
+def _get_monitorias_ativas_usuario(request):
+    return Monitor.objects.filter(usuario=request.user, ativo=True).select_related("turma__disciplina")
+
+
+def _get_atendimentos_monitor_ano(monitores, year=None):
+    qs = (
+        Atendimento.objects.filter(monitor__in=monitores)
+        .select_related("aluno", "disciplina", "monitor__usuario")
+        .prefetch_related("tutoria_grupo__alunos")
+    )
+    if year is not None:
+        qs = qs.filter(data_hora__year=year)
+    return qs
 
 
 @perfil_requerido("professor")
@@ -236,6 +251,162 @@ def relatorio_avancado(request):
             "disciplinas": Disciplina.objects.all(),
         },
     )
+
+
+@perfil_requerido("monitor")
+def relatorio_anual_monitor(request):
+    monitores = _get_monitorias_ativas_usuario(request)
+    if not monitores.exists():
+        return render(
+            request,
+            "403.html",
+            {"exception": "Nenhum monitor ativo encontrado para este usuário."},
+            status=403,
+        )
+
+    hoje = timezone.now().date()
+    year_param = request.GET.get("year", "").strip()
+    try:
+        selected_year = int(year_param) if year_param else hoje.year
+    except ValueError:
+        selected_year = hoje.year
+
+    years_with_data = list(
+        Atendimento.objects.filter(monitor__in=monitores)
+        .values_list("data_hora__year", flat=True)
+        .distinct()
+        .order_by("data_hora__year")
+    )
+
+    if years_with_data:
+        first_year = years_with_data[0]
+        available_years = list(range(hoje.year, first_year - 1, -1))
+    else:
+        available_years = [hoje.year]
+
+    if selected_year not in available_years:
+        selected_year = hoje.year
+
+    qs = _get_atendimentos_monitor_ano(monitores, selected_year).order_by("-data_hora")
+    total_count = qs.count()
+    total_min = qs.aggregate(total=Sum("duracao_min"))["total"] or 0
+    total_hours = float(total_min) / 60.0
+
+    month_labels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+    monthly = (
+        qs.annotate(month=TruncMonth("data_hora"))
+        .values("month")
+        .annotate(total=Count("id"))
+        .order_by("month")
+    )
+    month_totals = {i: 0 for i in range(1, 13)}
+    for item in monthly:
+        month_totals[item["month"].month] = item["total"]
+    monthly_stats = [
+        {"month": month_labels[i - 1], "total": month_totals[i]}
+        for i in range(1, 13)
+    ]
+
+    return render(
+        request,
+        "relatorios/relatorio_anual_monitor.html",
+        {
+            "available_years": available_years,
+            "selected_year": selected_year,
+            "total_count": total_count,
+            "total_hours": total_hours,
+            "monthly_stats": monthly_stats,
+            "atendimentos": qs,
+        },
+    )
+
+
+@perfil_requerido("monitor")
+def exportar_pdf_relatorio_anual(request):
+    monitores = _get_monitorias_ativas_usuario(request)
+    if not monitores.exists():
+        return render(
+            request,
+            "403.html",
+            {"exception": "Nenhum monitor ativo encontrado para este usuário."},
+            status=403,
+        )
+
+    hoje = timezone.now().date()
+    year_param = request.GET.get("year", "").strip()
+    try:
+        selected_year = int(year_param) if year_param else hoje.year
+    except ValueError:
+        selected_year = hoje.year
+
+    qs = _get_atendimentos_monitor_ano(monitores, selected_year).order_by("-data_hora")
+    total_count = qs.count()
+    total_min = qs.aggregate(total=Sum("duracao_min"))["total"] or 0
+    total_hours = float(total_min) / 60.0
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="relatorio_anual_monitor_{selected_year}.pdf"'
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+
+    styles = getSampleStyleSheet()
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    elems = []
+
+    logo_bytes = _base64_logo_ifmg()
+    logo = Image(io.BytesIO(logo_bytes), width=60, height=30)
+    elems.append(logo)
+    elems.append(Paragraph("IFMG - Relatório anual de monitor", styles["Title"]))
+    elems.append(Spacer(1, 12))
+
+    elems.append(
+        Paragraph(
+            f"Ano: {selected_year}<br/>"
+            f"Total de atendimentos: {total_count}<br/>"
+            f"Total de horas: {total_hours:.2f}",
+            styles["Normal"],
+        )
+    )
+    elems.append(Spacer(1, 12))
+
+    data = [["Data/Hora", "Tipo", "Aluno", "Disciplina", "Duração (min)", "Tópico"]]
+    for a in qs:
+        if a.aluno:
+            aluno_cell = a.aluno.nome
+        else:
+            tg = getattr(a, "tutoria_grupo", None)
+            aluno_cell = ", ".join(al.nome for al in tg.alunos.all()) if tg else "-"
+            aluno_cell = aluno_cell or "-"
+        data.append(
+            [
+                a.data_hora.strftime("%d/%m/%Y %H:%M"),
+                "Individual" if a.tipo == Atendimento.TIPO_INDIVIDUAL else "Grupo",
+                aluno_cell,
+                a.disciplina.codigo,
+                str(a.duracao_min),
+                a.topico,
+            ]
+        )
+
+    table = Table(data, repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+    elems.append(table)
+
+    doc.build(elems)
+    return response
 
 
 def _base64_logo_ifmg():

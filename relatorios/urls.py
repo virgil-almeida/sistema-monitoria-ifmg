@@ -1,6 +1,14 @@
 from django.urls import path
 
-from relatorios.views import dashboard_professor, exportar_pdf, historico_aluno, ranking_dificuldades, relatorio_avancado
+from relatorios.views import (
+    dashboard_professor,
+    exportar_pdf,
+    exportar_pdf_relatorio_anual,
+    historico_aluno,
+    ranking_dificuldades,
+    relatorio_anual_monitor,
+    relatorio_avancado,
+)
 
 app_name = "relatorios"
 
@@ -10,5 +18,7 @@ urlpatterns = [
     path("ranking/", ranking_dificuldades, name="ranking_dificuldades"),
     path("relatorio/", relatorio_avancado, name="relatorio_avancado"),
     path("relatorio/pdf/", exportar_pdf, name="exportar_pdf"),
+    path("relatorio/anual/", relatorio_anual_monitor, name="relatorio_anual_monitor"),
+    path("relatorio/anual/pdf/", exportar_pdf_relatorio_anual, name="exportar_pdf_relatorio_anual"),
 ]
 
