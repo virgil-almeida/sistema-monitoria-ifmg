@@ -375,23 +375,29 @@ def exportar_pdf_relatorio_anual(request):
     data = [["Data/Hora", "Tipo", "Aluno", "Disciplina", "Duração (min)", "Tópico"]]
     for a in qs:
         if a.aluno:
-            aluno_cell = a.aluno.nome
+            aluno_cell = Paragraph(a.aluno.nome, styles["Normal"])
         else:
             tg = getattr(a, "tutoria_grupo", None)
-            aluno_cell = ", ".join(al.nome for al in tg.alunos.all()) if tg else "-"
-            aluno_cell = aluno_cell or "-"
+            alunos = [al.nome for al in tg.alunos.all()] if tg else []
+            aluno_cell = Paragraph(", ".join(alunos) or "-", styles["Normal"])
+
         data.append(
             [
-                a.data_hora.strftime("%d/%m/%Y %H:%M"),
-                "Individual" if a.tipo == Atendimento.TIPO_INDIVIDUAL else "Grupo",
+                Paragraph(a.data_hora.strftime("%d/%m/%Y %H:%M"), styles["Normal"]),
+                Paragraph("Individual" if a.tipo == Atendimento.TIPO_INDIVIDUAL else "Grupo", styles["Normal"]),
                 aluno_cell,
-                a.disciplina.codigo,
-                str(a.duracao_min),
-                a.topico,
+                Paragraph(a.disciplina.codigo, styles["Normal"]),
+                Paragraph(str(a.duracao_min), styles["Normal"]),
+                Paragraph(a.topico or "-", styles["Normal"]),
             ]
         )
 
-    table = Table(data, repeatRows=1)
+    table = Table(
+        data,
+        repeatRows=1,
+        colWidths=[60, 60, 145, 70, 75, 105],
+        splitByRow=1,
+    )
     table.setStyle(
         TableStyle(
             [
@@ -400,6 +406,7 @@ def exportar_pdf_relatorio_anual(request):
                 ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("PAD", (0, 0), (-1, -1), 4),
             ]
         )
     )
