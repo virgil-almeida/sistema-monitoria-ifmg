@@ -114,6 +114,12 @@
                       <p>Preparação</p>
                     </a>
                   </li>
+                  <li class="nav-item">
+                    <a href="{% url 'relatorios:relatorio_anual_monitor' %}" class="nav-link">
+                      <i class="nav-icon fas fa-calendar-alt"></i>
+                      <p>Relatório anual</p>
+                    </a>
+                  </li>
                 {% elif user.perfil == 'professor' %}
                   <li class="nav-item">
                     <a href="{% url 'relatorios:dashboard_professor' %}" class="nav-link">
