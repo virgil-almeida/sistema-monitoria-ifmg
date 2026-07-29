@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Atendimentos SAE{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Atendimentos SAE</li>{% endblock %}
+{% block h1 %}Setor de Apoio ao Estudante (SAE){% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-info">
+    <div class="card-body">
+      <div class="row">
+        
+        <div class="col-md-5">
+          <h5 class="mb-3">Registrar Novo Atendimento</h5>
+          <form method="post" novalidate>
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="form-group mb-3">
+              <label for="id_data_hora">1 - Data do Registro <span class="text-danger">*</span></label>
+              {{ form.data_hora }}
+              {% for error in form.data_hora.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group mb-3">
+              <label for="id_estudante">2 - Nome/RA/Turma <span class="text-danger">*</span></label>
+              {{ form.estudante }}
+              {% for error in form.estudante.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="id_turma_opcional">3 - Turma (opcional)</label>
+              {{ form.turma_opcional }}
+              {% for error in form.turma_opcional.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="id_categoria">4 - Tipo de Registro <span class="text-danger">*</span></label>
+              {{ form.categoria }}
+              {% for error in form.categoria.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="id_profissional">5 - Responsável pelo registro <span class="text-danger">*</span></label>
+              {{ form.profissional }}
+              {% for error in form.profissional.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="id_registro">6 - Registro <span class="text-danger">*</span></label>
+              {{ form.registro }}
+              {% for error in form.registro.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group mb-3">
+              <label>7 - Corresponde a uma ata? <span class="text-danger">*</span></label>
+              <div>
+                {% for radio in form.eh_ata %}
+                  <div class="form-check form-check-inline">
+                    {{ radio.tag }}
+                    <label class="form-check-label ml-1" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                  </div>
+                {% endfor %}
+              </div>
+              {% for error in form.eh_ata.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="id_link_ata">8 - Link da ata (caso a resposta anterior seja "sim")</label>
+              {{ form.link_ata }}
+              {% for error in form.link_ata.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+
+            <button class="btn btn-info btn-block" type="submit">Salvar Registro</button>
+          </form>
+        </div>
+
+        <div class="col-md-7">
+          <h5 class="mb-3">Histórico de Atendimentos</h5>
+
+          <form method="get" class="form-inline mb-3">
+            <input
+              class="form-control mr-2"
+              type="search"
+              name="q"
+              value="{{ q|default:'' }}"
+              placeholder="Buscar por estudante..."
+            />
+            <button class="btn btn-secondary" type="submit">Buscar</button>
+          </form>
+
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Estudante</th>
+                  <th>Categoria</th>
+                  <th>Profissional</th>
+                  <th>Data</th>
+                  <th class="text-center">Ações</th> </tr>
+              </thead>
+              <tbody>
+                {% for atendimento in atendimentos %}
+                  <tr>
+                    <td><strong>{{ atendimento.estudante }}</strong></td>
+                    <td><span class="badge badge-info">{{ atendimento.get_categoria_display }}</span></td>
+                    <td>{{ atendimento.profissional.get_full_name|default:atendimento.profissional.username }}</td>
+                    <td>{{ atendimento.data_hora|date:"d/m/Y H:i" }}</td>
+                    
+                    <td class="text-center">
+                      <a 
+                        href="{% url 'atendimentos:deletar_atendimento_sae' atendimento.pk %}" 
+                        class="btn btn-sm btn-outline-danger" 
+                        title="Excluir"
+                      >
+                        <i class="fas fa-trash-alt"></i>
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="5" class="text-muted small border-top-0 pt-0"> <em>Resumo: {{ atendimento.registro|truncatewords:20 }}</em>
+                      {% if atendimento.eh_ata and atendimento.link_ata %}
+                        <br><a href="{{ atendimento.link_ata }}" target="_blank" class="text-info"><i class="fas fa-paperclip"></i> Ver Ata</a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="5" class="text-center">Nenhum atendimento registrado no SAE até o momento.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+{% endblock %}

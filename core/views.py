@@ -14,6 +14,8 @@ def home(request):
         return redirect("relatorios:dashboard_professor")
     if perfil == "admin":
         return redirect("curriculum:disciplinas_list")
+    if perfil == "sae":  #home request para o perfil SAE
+        return redirect("atendimentos:atendimento_sae")  
     return redirect("accounts:login")
 
 

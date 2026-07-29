@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmar Exclusão - SAE{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'atendimentos:atendimento_sae' %}">Atendimentos SAE</a></li>
+  <li class="breadcrumb-item active">Confirmar Exclusão</li>
+{% endblock %}
+{% block h1 %}Excluir Registro de Atendimento{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-6 offset-md-3">
+    <div class="card card-outline card-danger">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-exclamation-triangle text-danger mr-2"></i>
+          Atenção!
+        </h3>
+      </div>
+      <div class="card-body">
+        <p>Tem certeza de que deseja excluir o seguinte atendimento do SAE?</p>
+        
+        <div class="callout callout-danger bg-light">
+          <h5><strong>Estudante:</strong> {{ object.estudante }}</h5>
+          <p class="mb-1"><strong>Categoria:</strong> {{ object.get_categoria_display }}</p>
+          <p class="mb-1"><strong>Data:</strong> {{ object.data_hora|date:"d/m/Y H:i" }}</p>
+          <p class="mb-0"><strong>Responsável:</strong> {{ object.profissional.get_full_name|default:object.profissional.username }}</p>
+        </div>
+
+        <p class="text-muted small">
+          <i class="fas fa-info-circle"></i> Esta ação é irreversível e o registro será permanentemente removido do sistema.
+        </p>
+
+        <form method="post" class="mt-4">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash-alt mr-1"></i> Sim, Confirmar Exclusão
+          </button>
+          <a href="{% url 'atendimentos:atendimento_sae' %}" class="btn btn-secondary ml-2">
+            Cancelar
+          </a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -2,8 +2,9 @@ import random
 from django.template.context_processors import request
 from django import forms
 
-from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
+from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo, AtendimentoSAE
 from curriculum.models import Disciplina
+from accounts.models import Usuario
 
 
 class MonitorChoiceField(forms.ModelChoiceField):
@@ -126,3 +127,54 @@ class AtendimentoGrupoForm(forms.Form):
             if not isinstance(field.widget, (forms.CheckboxInput, forms.SelectMultiple)):
                 field.widget.attrs.setdefault("class", "form-control")
         self.fields["alunos"].widget.attrs.setdefault("class", "form-control")
+
+
+
+class AtendimentoSAEForm(forms.ModelForm):
+    EH_ATA_CHOICES = [
+        (True, 'Sim'),
+        (False, 'Não'),
+    ]
+
+    eh_ata = forms.ChoiceField(
+        choices=EH_ATA_CHOICES,
+        widget=forms.RadioSelect,
+        initial=False,
+        label="7 - Corresponde a uma ata? *"
+    )
+
+    class Meta:
+        model = AtendimentoSAE
+        fields = [
+            "data_hora",
+            "estudante",
+            "turma_opcional",
+            "categoria",
+            "profissional",
+            "registro",
+            "eh_ata",
+            "link_ata",
+        ]
+        labels = {
+            "data_hora": "1 - Data do Registro *",
+            "estudante": "2 - Nome/RA/Turma *",
+            "turma_opcional": "3 - Turma (opcional)",
+            "categoria": "4 - Tipo de Registro *",
+            "profissional": "5 - Responsável pelo registro: *",
+            "registro": "6 - Registro *",
+            "link_ata": "8 - Link da ata (caso a resposta anterior seja 'sim')",
+        }
+        widgets = {
+            "data_hora": forms.DateInput(attrs={"type":"date", "class":"form-control"}),
+            "estudante": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nome, RA ou Turma"}),
+            "turma_opcional": forms.TextInput(attrs={"class": "form-control", "placeholder": "Texto de resposta curta"}),
+            "categoria": forms.Select(attrs={"class": "form-control"}),
+            "profissional": forms.Select(attrs={"class": "form-control"}),
+            "registro": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Texto de resposta simples/curta"}),
+            "link_ata": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://..."}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filtra apenas usuários com perfil SAE
+        self.fields["profissional"].queryset = Usuario.objects.filter(perfil="sae")

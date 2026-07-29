@@ -115,6 +115,13 @@
                       <p>Relatórios</p>
                     </a>
                   </li>
+                {% elif user.perfil == 'sae' %}
+                  <li class="nav-item">
+                    <a href="{% url 'atendimentos:atendimento_sae' %}" class="nav-link">
+                      <i class="nav-icon fas fa-user-check"></i>
+                        <p>Atendimentos SAE</p>
+                    </a>
+                  </li>
                 {% elif user.perfil == 'admin' %}
                   <li class="nav-item">
                     <a href="{% url 'curriculum:disciplinas_list' %}" class="nav-link">
