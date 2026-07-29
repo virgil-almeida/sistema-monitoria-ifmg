@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% load relatorios_tags %}
+
+{% block title %}Relatório — Planejado × Realizado{% endblock %}
+{% block h1 %}Planejado × Realizado{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'relatorios:planejamento_monitoria' %}">Planejamento</a></li>
+  <li class="breadcrumb-item active">Relatório</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filtros -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="get" class="form-row align-items-end">
+      <div class="form-group col-md-3 mb-2">
+        <label>Turma</label>
+        <select name="turma" class="form-control">
+          {% for t in turmas %}
+            <option value="{{ t.pk }}" {% if turma_selecionada.pk == t.pk %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group col-md-2 mb-2">
+        <label>Monitor</label>
+        <select name="monitor" class="form-control">
+          <option value="">Todos</option>
+          {% for m in monitores_turma %}
+            <option value="{{ m.pk }}" {% if monitor_selecionado.pk == m.pk %}selected{% endif %}>
+              {{ m.usuario.get_full_name|default:m.usuario.username }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group col-md-2 mb-2">
+        <label>De</label>
+        <input type="date" name="data_inicio" class="form-control"
+               value="{{ data_inicio|date:'Y-m-d' }}">
+      </div>
+      <div class="form-group col-md-2 mb-2">
+        <label>Até</label>
+        <input type="date" name="data_fim" class="form-control"
+               value="{{ data_fim|date:'Y-m-d' }}">
+      </div>
+      <div class="form-group col-md-2 mb-2">
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fas fa-filter mr-1"></i> Filtrar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if turma_selecionada %}
+
+  <!-- Resumo geral -->
+  <div class="callout callout-info mb-4">
+    <h5>Total do período: <strong>{{ total_geral_min|minutos_horas }}</strong></h5>
+    <small class="text-muted">
+      {{ turma_selecionada }} ·
+      {{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}
+      {% if monitor_selecionado %}· {{ monitor_selecionado.usuario.get_full_name|default:monitor_selecionado.usuario.username }}{% endif %}
+    </small>
+  </div>
+
+  {% for semana in semanas_dados %}
+    {% if semana.plano or semana.total_semana_min > 0 %}
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">
+          Semana de {{ semana.semana_inicio|date:"d/m/Y" }} a {{ semana.semana_fim|date:"d/m/Y" }}
+          {% if semana.total_semana_min %}
+            <span class="badge badge-primary ml-2">{{ semana.total_semana_min|minutos_horas }}</span>
+          {% endif %}
+        </h5>
+      </div>
+      <div class="card-body">
+
+        {% if semana.plano %}
+          <div class="mb-3">
+            <h6 class="text-uppercase text-muted small mb-1">
+              <i class="fas fa-clipboard-list mr-1"></i> Planejado
+            </h6>
+            <div class="border-left border-primary pl-3" style="white-space:pre-wrap">{{ semana.plano.planejamento }}</div>
+          </div>
+        {% else %}
+          <p class="text-muted small"><i>Nenhum planejamento registrado para esta semana.</i></p>
+        {% endif %}
+
+        <hr>
+
+        <h6 class="text-uppercase text-muted small mb-2">
+          <i class="fas fa-check-circle mr-1"></i> Realizado
+        </h6>
+
+        {% for item in semana.por_monitor %}
+          {% if item.atendimentos or item.preparacoes %}
+            {% if semana.por_monitor|length > 1 %}
+              <p class="font-weight-bold mb-1">
+                <i class="fas fa-user-tie mr-1"></i>
+                {{ item.monitor.usuario.get_full_name|default:item.monitor.usuario.username }}
+              </p>
+            {% endif %}
+
+            {% if item.atendimentos %}
+              <p class="mb-1 text-muted small">Atendimentos</p>
+              <ul class="list-unstyled pl-3 mb-1">
+                {% for a in item.atendimentos %}
+                  <li>
+                    <i class="fas fa-circle fa-xs mr-1 text-primary"></i>
+                    {% if a.tipo == "individual" %}
+                      Individual — {{ a.aluno.nome }} — {{ a.disciplina.codigo }}
+                    {% else %}
+                      Grupo ({{ a.tutoria_grupo.numero_participantes }} participantes) — {{ a.disciplina.codigo }}
+                    {% endif %}
+                    <span class="text-muted">— {{ a.duracao_min }} min</span>
+                  </li>
+                {% endfor %}
+              </ul>
+              <p class="text-right text-muted small mb-2">
+                Subtotal atendimentos: <strong>{{ item.total_atendimentos_min|minutos_horas }}</strong>
+              </p>
+            {% endif %}
+
+            {% if item.preparacoes %}
+              <p class="mb-1 text-muted small">Preparação</p>
+              <ul class="list-unstyled pl-3 mb-1">
+                {% for p in item.preparacoes %}
+                  <li>
+                    <i class="fas fa-circle fa-xs mr-1 text-warning"></i>
+                    {{ p.descricao }}
+                    <span class="text-muted">— {{ p.duracao_min }} min</span>
+                  </li>
+                {% endfor %}
+              </ul>
+              <p class="text-right text-muted small mb-2">
+                Subtotal preparação: <strong>{{ item.total_preparacao_min|minutos_horas }}</strong>
+              </p>
+            {% endif %}
+
+            <p class="text-right mb-0">
+              Total: <strong class="text-primary">{{ item.total_min|minutos_horas }}</strong>
+            </p>
+          {% else %}
+            <p class="text-muted small">
+              <i class="fas fa-user-tie mr-1"></i>
+              {{ item.monitor.usuario.get_full_name|default:item.monitor.usuario.username }} —
+              sem registros nesta semana.
+            </p>
+          {% endif %}
+        {% endfor %}
+
+      </div>
+    </div>
+    {% endif %}
+  {% empty %}
+    <div class="alert alert-info">Nenhum dado encontrado para o período selecionado.</div>
+  {% endfor %}
+
+{% else %}
+  <div class="alert alert-warning">Selecione uma turma para visualizar o relatório.</div>
+{% endif %}
+
+{% endblock %}

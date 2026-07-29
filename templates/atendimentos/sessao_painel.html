@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Painel da sessão{% endblock %}
+{% block h1 %}Painel da sessão{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'atendimentos:minhas_sessoes' %}">Minhas sessões</a></li>
+  <li class="breadcrumb-item active">Painel</li>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  #qr-canvas { display: block; margin: 0 auto; }
+  .participante-row { animation: fadeIn .4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Info da sessão -->
+  <div class="col-md-4">
+    <div class="card card-outline card-success">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-info-circle mr-1"></i> Sessão</h3>
+        <div class="card-tools">
+          <span class="badge badge-success">Em andamento</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5">Turma</dt>
+          <dd class="col-7">{{ sessao.monitor.turma }}</dd>
+          <dt class="col-5">Local</dt>
+          <dd class="col-7">{{ sessao.local }}</dd>
+          <dt class="col-5">Início</dt>
+          <dd class="col-7">{{ sessao.inicio|date:"H:i" }}</dd>
+          <dt class="col-5">Objetivo</dt>
+          <dd class="col-7">{{ sessao.objetivo }}</dd>
+        </dl>
+      </div>
+      <div class="card-footer">
+        <button class="btn btn-lg btn-block btn-primary" data-toggle="modal" data-target="#modalQR">
+          <i class="fas fa-qrcode mr-1"></i> Mostrar QR Code
+        </button>
+        <a href="{% url 'atendimentos:finalizar_sessao' uuid=sessao.uuid %}" class="btn btn-block btn-outline-danger mt-2">
+          <i class="fas fa-flag-checkered mr-1"></i> Finalizar monitoria
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Participantes -->
+  <div class="col-md-8">
+    <div class="card card-outline card-primary">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-users mr-1"></i>
+          Participantes <span class="badge badge-primary ml-1">{{ participantes|length }}</span>
+        </h3>
+        <div class="card-tools">
+          <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+            <i class="fas fa-sync-alt mr-1"></i> Atualizar
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        {% if participantes %}
+          <table class="table table-sm table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th>#</th>
+                <th>Nome</th>
+                <th>Matrícula</th>
+                <th>Registrado às</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in participantes %}
+                <tr class="participante-row">
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ p.nome }}</td>
+                  <td><code>{{ p.matricula }}</code></td>
+                  <td>{{ p.registrado_em|date:"H:i:s" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-qrcode fa-2x mb-2 d-block"></i>
+            Nenhum participante ainda. Mostre o QR Code para os alunos registrarem presença.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal QR Code — aria-hidden no trigger evitado com data-target e foco gerenciado -->
+<div class="modal fade" id="modalQR" tabindex="-1" role="dialog" aria-labelledby="modalQRLabel" aria-modal="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalQRLabel"><i class="fas fa-qrcode mr-2"></i>QR Code de presença</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <p class="text-muted mb-3">Mostre este código para os alunos escanearem com a câmera do celular.</p>
+        <div id="qr-container" style="display:inline-block;"></div>
+        <p class="mt-3 small text-muted text-break">{{ url_participacao }}</p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+  $(function () {
+    var url = "{{ url_participacao|escapejs }}";
+    var gerado = false;
+    /* Bootstrap 4 dispara shown.bs.modal via jQuery.trigger() — precisa de .on() */
+    $('#modalQR').on('shown.bs.modal', function () {
+      if (!gerado) {
+        new QRCode(document.getElementById('qr-container'), {
+          text: url,
+          width: 280,
+          height: 280,
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        gerado = true;
+      }
+    });
+  });
+</script>
+{% endblock %}

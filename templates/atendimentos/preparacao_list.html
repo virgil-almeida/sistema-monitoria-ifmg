@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Atividades de preparação{% endblock %}
+{% block h1 %}Atividades de preparação{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item active">Preparação</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Formulário de registro -->
+  <div class="col-md-4">
+    <div class="card card-outline card-warning">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-plus-circle mr-1"></i> Registrar atividade</h3>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+
+          <div class="form-group">
+            <label>{{ form.monitor.label }}</label>
+            {{ form.monitor }}
+            {% for e in form.monitor.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-group">
+            <label>{{ form.data.label }}</label>
+            {{ form.data }}
+            {% for e in form.data.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-group">
+            <label>{{ form.duracao_min.label }}</label>
+            {{ form.duracao_min }}
+            {% for e in form.duracao_min.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-group">
+            <label>{{ form.descricao.label }}</label>
+            {{ form.descricao }}
+            {% for e in form.descricao.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-warning btn-block">
+            <i class="fas fa-save mr-1"></i> Salvar
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de atividades -->
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-list mr-1"></i> Histórico de preparações</h3>
+      </div>
+      <div class="card-body p-0">
+        {% if atividades %}
+          <table class="table table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th>Data</th>
+                <th>Turma</th>
+                <th>Descrição</th>
+                <th class="text-right">Duração</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in atividades %}
+                <tr>
+                  <td>{{ a.data|date:"d/m/Y" }}</td>
+                  <td>{{ a.monitor.turma.disciplina.codigo }}</td>
+                  <td>{{ a.descricao }}</td>
+                  <td class="text-right">{{ a.duracao_min }} min</td>
+                  <td class="text-right">
+                    <a href="{% url 'atendimentos:preparacao_delete' pk=a.pk %}"
+                       class="btn btn-sm btn-outline-danger"
+                       title="Excluir">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-book-open fa-2x mb-2 d-block"></i>
+            Nenhuma atividade de preparação registrada ainda.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

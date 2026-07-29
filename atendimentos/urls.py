@@ -10,6 +10,16 @@ from atendimentos.views import (
     AtendimentoListView,
     AtendimentoSAEView,
     AtendimentoSAEDeleteView,
+    AtividadePreparacaoDeleteView,
+    AtividadePreparacaoView,
+    FinalizarSessaoView,
+    IniciarSessaoView,
+    MonitoriasAoVivoView,
+    PainelSessaoView,
+    RegistrarParticipacaoView,
+    SessoesListView,
+    meu_planejamento,
+    participacao_sucesso,
 )
 
 app_name = "atendimentos"
@@ -24,5 +34,16 @@ urlpatterns = [
     path("alunos/", AlunosFrequentesView.as_view(), name="alunos_frequentes"),
     path("sae/", AtendimentoSAEView.as_view(), name="atendimento_sae"),
     path("sae/<int:pk>/excluir/", AtendimentoSAEDeleteView.as_view(), name="deletar_atendimento_sae"),
+    path("meu-planejamento/", meu_planejamento, name="meu_planejamento"),
+    path("preparacao/", AtividadePreparacaoView.as_view(), name="preparacao_list"),
+    path("preparacao/<int:pk>/excluir/", AtividadePreparacaoDeleteView.as_view(), name="preparacao_delete"),
+    # Fluxo ao vivo
+    path("ao-vivo/", MonitoriasAoVivoView.as_view(), name="monitorias_ao_vivo"),
+    path("sessao/iniciar/", IniciarSessaoView.as_view(), name="iniciar_sessao"),
+    path("sessao/", SessoesListView.as_view(), name="minhas_sessoes"),
+    path("sessao/<uuid:uuid>/painel/", PainelSessaoView.as_view(), name="painel_sessao"),
+    path("sessao/<uuid:uuid>/participar/", RegistrarParticipacaoView.as_view(), name="registrar_participacao"),
+    path("sessao/<uuid:uuid>/participar/ok/", participacao_sucesso, name="participacao_sucesso"),
+    path("sessao/<uuid:uuid>/finalizar/", FinalizarSessaoView.as_view(), name="finalizar_sessao"),
 ]
 

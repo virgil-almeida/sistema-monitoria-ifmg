@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar monitoria ao vivo{% endblock %}
+{% block h1 %}Iniciar monitoria ao vivo{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item active">Iniciar monitoria</li>
+{% endblock %}
+
+{% block content %}
+  <div class="card card-outline card-success">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-broadcast-tower mr-2"></i>Nova sessão ao vivo</h3>
+    </div>
+    <div class="card-body">
+      <p class="text-muted">
+        Inicie a monitoria agora. Ao finalizar, você poderá exibir um QR Code para os alunos registrarem a presença.
+      </p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-group">
+          <label for="id_monitor">Disciplina / Turma</label>
+          {{ form.monitor }}
+          {% for error in form.monitor.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_local">Espaço / Local</label>
+          {{ form.local }}
+          <small class="form-text text-muted">Ex: Laboratório 2, Sala 105, Biblioteca…</small>
+          {% for error in form.local.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_objetivo">Objetivo do encontro</label>
+          {{ form.objetivo }}
+          {% for error in form.objetivo.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-success">
+          <i class="fas fa-play mr-1"></i> Iniciar monitoria
+        </button>
+        <a href="{% url 'atendimentos:lista_meus_atendimentos' %}" class="btn btn-secondary ml-2">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

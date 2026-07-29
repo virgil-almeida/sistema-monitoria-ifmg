@@ -2,16 +2,17 @@ import base64
 import io
 from datetime import date, datetime, timedelta
 
+from django.contrib import messages
 from django.db.models import Count, Q, Sum
-from django.db.models.functions import TruncWeek
+from django.db.models.functions import TruncMonth, TruncWeek
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from core.permissions import perfil_requerido
-from curriculum.models import Disciplina
+from curriculum.models import Disciplina, Turma
 from atendimentos.forms import AlunoForm
-from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
+from atendimentos.models import Aluno, AtividadePreparacao, Atendimento, Monitor, PlanoSemana, TutoriaGrupo
 
 
 def _get_professor_monitorias(professor):
@@ -28,6 +29,21 @@ def _parse_date(value: str):
         return datetime.strptime(value, "%Y-%m-%d").date()
     except ValueError:
         return None
+
+
+def _get_monitorias_ativas_usuario(request):
+    return Monitor.objects.filter(usuario=request.user, ativo=True).select_related("turma__disciplina")
+
+
+def _get_atendimentos_monitor_ano(monitores, year=None):
+    qs = (
+        Atendimento.objects.filter(monitor__in=monitores)
+        .select_related("aluno", "disciplina", "monitor__usuario")
+        .prefetch_related("tutoria_grupo__alunos")
+    )
+    if year is not None:
+        qs = qs.filter(data_hora__year=year)
+    return qs
 
 
 @perfil_requerido("professor")
@@ -88,25 +104,24 @@ def dashboard_professor(request):
 
 @perfil_requerido("professor")
 def historico_aluno(request):
-    _, monitores = _get_professor_monitorias(request.user)
-    alunos_qs = Aluno.objects.filter(monitor__in=monitores)
-
     q = request.GET.get("q", "").strip()
     aluno_selecionado = None
     atendimentos = None
     total_atendimentos = 0
 
     if q:
-        aluno_selecionado = alunos_qs.filter(Q(nome__icontains=q) | Q(matricula__icontains=q)).first()
+        aluno_selecionado = Aluno.objects.filter(
+            Q(nome__icontains=q) | Q(matricula__icontains=q)
+        ).first()
         if aluno_selecionado:
             atendimentos = (
-                Atendimento.objects.filter(monitor__in=monitores)
-                .filter(
+                Atendimento.objects.filter(
                     Q(aluno=aluno_selecionado) |
                     Q(tutoria_grupo__alunos=aluno_selecionado)
                 )
                 .distinct()
                 .select_related("monitor__usuario", "disciplina", "aluno")
+                .prefetch_related("tutoria_grupo__alunos")
                 .order_by("data_hora")
             )
             total_atendimentos = atendimentos.count()
@@ -186,7 +201,11 @@ def ranking_dificuldades(request):
 @perfil_requerido("professor")
 def relatorio_avancado(request):
     _, monitores = _get_professor_monitorias(request.user)
-    qs = Atendimento.objects.filter(monitor__in=monitores).select_related("aluno", "disciplina", "monitor__usuario")
+    qs = (
+        Atendimento.objects.filter(monitor__in=monitores)
+        .select_related("aluno", "disciplina", "monitor__usuario")
+        .prefetch_related("tutoria_grupo__alunos")
+    )
 
     periodo_inicio = _parse_date(request.GET.get("data_inicio", ""))
     periodo_fim = _parse_date(request.GET.get("data_fim", ""))
@@ -238,6 +257,162 @@ def relatorio_avancado(request):
     )
 
 
+@perfil_requerido("monitor")
+def relatorio_anual_monitor(request):
+    monitores = _get_monitorias_ativas_usuario(request)
+    if not monitores.exists():
+        return render(
+            request,
+            "403.html",
+            {"exception": "Nenhum monitor ativo encontrado para este usuário."},
+            status=403,
+        )
+
+    hoje = timezone.now().date()
+    year_param = request.GET.get("year", "").strip()
+    try:
+        selected_year = int(year_param) if year_param else hoje.year
+    except ValueError:
+        selected_year = hoje.year
+
+    years_with_data = list(
+        Atendimento.objects.filter(monitor__in=monitores)
+        .values_list("data_hora__year", flat=True)
+        .distinct()
+        .order_by("data_hora__year")
+    )
+
+    if years_with_data:
+        first_year = years_with_data[0]
+        available_years = list(range(hoje.year, first_year - 1, -1))
+    else:
+        available_years = [hoje.year]
+
+    if selected_year not in available_years:
+        selected_year = hoje.year
+
+    qs = _get_atendimentos_monitor_ano(monitores, selected_year).order_by("-data_hora")
+    total_count = qs.count()
+    total_min = qs.aggregate(total=Sum("duracao_min"))["total"] or 0
+    total_hours = float(total_min) / 60.0
+
+    month_labels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+    monthly = (
+        qs.annotate(month=TruncMonth("data_hora"))
+        .values("month")
+        .annotate(total=Count("id"))
+        .order_by("month")
+    )
+    month_totals = {i: 0 for i in range(1, 13)}
+    for item in monthly:
+        month_totals[item["month"].month] = item["total"]
+    monthly_stats = [
+        {"month": month_labels[i - 1], "total": month_totals[i]}
+        for i in range(1, 13)
+    ]
+
+    return render(
+        request,
+        "relatorios/relatorio_anual_monitor.html",
+        {
+            "available_years": available_years,
+            "selected_year": selected_year,
+            "total_count": total_count,
+            "total_hours": total_hours,
+            "monthly_stats": monthly_stats,
+            "atendimentos": qs,
+        },
+    )
+
+
+@perfil_requerido("monitor")
+def exportar_pdf_relatorio_anual(request):
+    monitores = _get_monitorias_ativas_usuario(request)
+    if not monitores.exists():
+        return render(
+            request,
+            "403.html",
+            {"exception": "Nenhum monitor ativo encontrado para este usuário."},
+            status=403,
+        )
+
+    hoje = timezone.now().date()
+    year_param = request.GET.get("year", "").strip()
+    try:
+        selected_year = int(year_param) if year_param else hoje.year
+    except ValueError:
+        selected_year = hoje.year
+
+    qs = _get_atendimentos_monitor_ano(monitores, selected_year).order_by("-data_hora")
+    total_count = qs.count()
+    total_min = qs.aggregate(total=Sum("duracao_min"))["total"] or 0
+    total_hours = float(total_min) / 60.0
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="relatorio_anual_monitor_{selected_year}.pdf"'
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+
+    styles = getSampleStyleSheet()
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    elems = []
+
+    logo_bytes = _base64_logo_ifmg()
+    logo = Image(io.BytesIO(logo_bytes), width=60, height=30)
+    elems.append(logo)
+    elems.append(Paragraph("IFMG - Relatório anual de monitor", styles["Title"]))
+    elems.append(Spacer(1, 12))
+
+    elems.append(
+        Paragraph(
+            f"Ano: {selected_year}<br/>"
+            f"Total de atendimentos: {total_count}<br/>"
+            f"Total de horas: {total_hours:.2f}",
+            styles["Normal"],
+        )
+    )
+    elems.append(Spacer(1, 12))
+
+    data = [["Data/Hora", "Tipo", "Aluno", "Disciplina", "Duração (min)", "Tópico"]]
+    for a in qs:
+        if a.aluno:
+            aluno_cell = a.aluno.nome
+        else:
+            tg = getattr(a, "tutoria_grupo", None)
+            aluno_cell = ", ".join(al.nome for al in tg.alunos.all()) if tg else "-"
+            aluno_cell = aluno_cell or "-"
+        data.append(
+            [
+                a.data_hora.strftime("%d/%m/%Y %H:%M"),
+                "Individual" if a.tipo == Atendimento.TIPO_INDIVIDUAL else "Grupo",
+                aluno_cell,
+                a.disciplina.codigo,
+                str(a.duracao_min),
+                a.topico,
+            ]
+        )
+
+    table = Table(data, repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+    elems.append(table)
+
+    doc.build(elems)
+    return response
+
+
 def _base64_logo_ifmg():
     # Placeholder simples (1x1 px) para cumprir o cabeçalho.
     # O ideal é substituir pelo arquivo real em `static/img/logo-ifmg.png`.
@@ -260,7 +435,11 @@ def exportar_pdf(request):
     from reportlab.pdfgen import canvas
 
     _, monitores = _get_professor_monitorias(request.user)
-    qs = Atendimento.objects.filter(monitor__in=monitores).select_related("aluno", "disciplina", "monitor__usuario")
+    qs = (
+        Atendimento.objects.filter(monitor__in=monitores)
+        .select_related("aluno", "disciplina", "monitor__usuario")
+        .prefetch_related("tutoria_grupo__alunos")
+    )
 
     periodo_inicio = _parse_date(request.GET.get("data_inicio", ""))
     periodo_fim = _parse_date(request.GET.get("data_fim", ""))
@@ -313,12 +492,18 @@ def exportar_pdf(request):
 
     data = [["Data/Hora", "Tipo", "Monitor", "Aluno", "Disciplina", "Duração (min)", "Tópico"]]
     for a in qs[:200]:  # evita PDF gigantescos em teste
+        if a.aluno:
+            aluno_cell = a.aluno.nome
+        else:
+            tg = getattr(a, "tutoria_grupo", None)
+            aluno_cell = ", ".join(al.nome for al in tg.alunos.all()) if tg else "-"
+            aluno_cell = aluno_cell or "-"
         data.append(
             [
                 a.data_hora.strftime("%d/%m/%Y %H:%M"),
                 "Individual" if a.tipo == Atendimento.TIPO_INDIVIDUAL else "Grupo",
                 a.monitor.usuario.username,
-                a.aluno.nome if a.aluno else "-",
+                aluno_cell,
                 a.disciplina.codigo,
                 str(a.duracao_min),
                 a.topico,
@@ -342,4 +527,195 @@ def exportar_pdf(request):
 
     doc.build(elems)
     return response
+
+
+# ── Planejamento de monitoria ─────────────────────────────────────────────────
+
+def _semana_inicio(d):
+    """Retorna a segunda-feira da semana que contém a data d."""
+    return d - timedelta(days=d.weekday())
+
+
+@perfil_requerido("professor")
+def planejamento_monitoria(request):
+    turmas, _ = _get_professor_monitorias(request.user)
+
+    turma_id = request.GET.get("turma") or request.POST.get("turma")
+    turma_selecionada = None
+    if turma_id:
+        turma_selecionada = get_object_or_404(Turma, pk=turma_id, professor=request.user)
+    elif turmas.exists():
+        turma_selecionada = turmas.first()
+
+    # Semana selecionada (segunda-feira)
+    semana_str = request.GET.get("semana") or request.POST.get("semana")
+    hoje = date.today()
+    semana_atual = _semana_inicio(hoje)
+    try:
+        semana_selecionada = date.fromisoformat(semana_str) if semana_str else semana_atual
+    except ValueError:
+        semana_selecionada = semana_atual
+
+    # Gerar lista de semanas: 12 passadas + atual + 4 futuras
+    semanas = [semana_atual - timedelta(weeks=i) for i in range(12, -5, -1)]
+
+    # Buscar planos já salvos para a turma selecionada
+    planos_existentes = {}
+    monitores_turma = []
+    plano_selecionado = None
+    if turma_selecionada:
+        planos_existentes = {
+            p.semana_inicio: p
+            for p in PlanoSemana.objects.filter(turma=turma_selecionada)
+        }
+        monitores_turma = list(
+            Monitor.objects.filter(turma=turma_selecionada, ativo=True)
+            .select_related("usuario")
+        )
+        plano_selecionado = planos_existentes.get(semana_selecionada)
+
+    # Salvar planejamento
+    if request.method == "POST" and turma_selecionada:
+        planejamento_texto = request.POST.get("planejamento", "").strip()
+        if planejamento_texto:
+            PlanoSemana.objects.update_or_create(
+                turma=turma_selecionada,
+                semana_inicio=semana_selecionada,
+                defaults={"planejamento": planejamento_texto, "professor": request.user},
+            )
+        else:
+            PlanoSemana.objects.filter(
+                turma=turma_selecionada, semana_inicio=semana_selecionada
+            ).delete()
+        messages.success(request, "Planejamento salvo.")
+        return redirect(
+            f"{request.path}?turma={turma_selecionada.pk}&semana={semana_selecionada.isoformat()}"
+        )
+
+    semanas_info = [
+        {
+            "inicio": s,
+            "fim": s + timedelta(days=6),
+            "tem_plano": s in planos_existentes,
+            "ativa": s == semana_selecionada,
+        }
+        for s in semanas
+    ]
+
+    return render(request, "relatorios/planejamento.html", {
+        "turmas": turmas,
+        "turma_selecionada": turma_selecionada,
+        "semanas_info": semanas_info,
+        "semana_selecionada": semana_selecionada,
+        "semana_fim": semana_selecionada + timedelta(days=6),
+        "plano_texto": plano_selecionado.planejamento if plano_selecionado else "",
+        "monitores_turma": monitores_turma,
+    })
+
+
+@perfil_requerido("professor")
+def relatorio_planejamento(request):
+    turmas, _ = _get_professor_monitorias(request.user)
+
+    turma_id = request.GET.get("turma")
+    turma_selecionada = None
+    if turma_id:
+        turma_selecionada = get_object_or_404(Turma, pk=turma_id, professor=request.user)
+    elif turmas.exists():
+        turma_selecionada = turmas.first()
+
+    monitor_id = request.GET.get("monitor", "").strip()
+    data_inicio = _parse_date(request.GET.get("data_inicio")) or (date.today() - timedelta(weeks=8))
+    data_fim = _parse_date(request.GET.get("data_fim")) or date.today()
+
+    monitores_turma = []
+    monitor_selecionado = None
+    semanas_dados = []
+    total_geral_min = 0
+
+    if turma_selecionada:
+        monitores_turma = list(
+            Monitor.objects.filter(turma=turma_selecionada, ativo=True).select_related("usuario")
+        )
+        if monitor_id:
+            monitor_selecionado = get_object_or_404(Monitor, pk=monitor_id, turma=turma_selecionada)
+
+        monitores_report = [monitor_selecionado] if monitor_selecionado else monitores_turma
+
+        semana_ini_range = _semana_inicio(data_inicio)
+        semana_fim_range = _semana_inicio(data_fim)
+
+        planos = {
+            p.semana_inicio: p
+            for p in PlanoSemana.objects.filter(
+                turma=turma_selecionada,
+                semana_inicio__gte=semana_ini_range,
+                semana_inicio__lte=semana_fim_range,
+            )
+        }
+
+        atendimentos_list = list(
+            Atendimento.objects.filter(
+                monitor__in=monitores_report,
+                data_hora__date__gte=data_inicio,
+                data_hora__date__lte=data_fim,
+            )
+            .select_related("aluno", "disciplina", "monitor__usuario")
+            .prefetch_related("tutoria_grupo__alunos")
+        )
+
+        preparacoes_list = list(
+            AtividadePreparacao.objects.filter(
+                monitor__in=monitores_report,
+                data__gte=data_inicio,
+                data__lte=data_fim,
+            ).select_related("monitor__usuario")
+        )
+
+        semana = semana_ini_range
+        while semana <= semana_fim_range:
+            semana_fim_week = semana + timedelta(days=6)
+            dados = {
+                "semana_inicio": semana,
+                "semana_fim": semana_fim_week,
+                "plano": planos.get(semana),
+                "por_monitor": [],
+                "total_semana_min": 0,
+            }
+            for m in monitores_report:
+                ats = [
+                    a for a in atendimentos_list
+                    if a.monitor_id == m.pk and semana <= a.data_hora.date() <= semana_fim_week
+                ]
+                preps = [
+                    p for p in preparacoes_list
+                    if p.monitor_id == m.pk and semana <= p.data <= semana_fim_week
+                ]
+                total_at = sum(a.duracao_min for a in ats)
+                total_prep = sum(p.duracao_min for p in preps)
+                total = total_at + total_prep
+                dados["por_monitor"].append({
+                    "monitor": m,
+                    "atendimentos": ats,
+                    "preparacoes": preps,
+                    "total_atendimentos_min": total_at,
+                    "total_preparacao_min": total_prep,
+                    "total_min": total,
+                })
+                dados["total_semana_min"] += total
+
+            total_geral_min += dados["total_semana_min"]
+            semanas_dados.append(dados)
+            semana += timedelta(weeks=1)
+
+    return render(request, "relatorios/relatorio_planejamento.html", {
+        "turmas": turmas,
+        "turma_selecionada": turma_selecionada,
+        "monitores_turma": monitores_turma,
+        "monitor_selecionado": monitor_selecionado,
+        "semanas_dados": semanas_dados,
+        "total_geral_min": total_geral_min,
+        "data_inicio": data_inicio,
+        "data_fim": data_fim,
+    })
 
