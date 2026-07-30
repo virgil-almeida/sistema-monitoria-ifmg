@@ -7,6 +7,7 @@ class Usuario(AbstractUser):
         ("monitor", "Monitor"),
         ("professor", "Professor"),
         ("admin", "Admin"),
+        ("sae", "Profissional SAE"),
     ]
 
     perfil = models.CharField(max_length=20, choices=PERFIL_CHOICES, blank=True, null=True)

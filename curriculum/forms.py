@@ -1,7 +1,7 @@
 from django import forms
 
 from accounts.models import Usuario
-from atendimentos.models import Monitor
+from atendimentos.models import Monitor, AtendimentoSAE
 from curriculum.models import Disciplina, Turma
 
 
@@ -57,4 +57,5 @@ class MonitorForm(forms.ModelForm):
         for field in self.fields.values():
             if not isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs.setdefault("class", "form-control")
+
 

@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from django.utils import timezone
+
 from accounts.models import Usuario
 from curriculum.models import Disciplina, Turma
 
@@ -42,6 +44,9 @@ class Aluno(models.Model):
 
     def __str__(self) -> str:
         return f"{self.nome} ({self.matricula})"
+
+
+
 
 
 class Atendimento(models.Model):
@@ -93,6 +98,36 @@ class TutoriaGrupo(models.Model):
             raise ValidationError({"numero_participantes": "Número de participantes deve ser >= 2."})
 
 
+class AtendimentoSAE(models.Model):
+    CATEGORIA_CHOICES = [
+        ("informacoes_gerais", "Informações gerais"),
+        ("pedagogia", "Pedagogia"),
+        ("mediacao_disciplinar", "Mediação disciplinar"),
+        ("psicologia_escolar", "Psicologia Escolar"),
+        ("encaminhamentos_externos", "Encaminhamentos a instituições externas"),
+        ("servico_social", "Serviço social"),
+        ("napnee", "NAPNEE"),
+        ("enfermidades_afastamentos", "Enfermidades, tratamentos ou afastamentos médicos"),
+    ]
+
+    data_hora = models.DateTimeField(default=timezone.now, verbose_name="Data do registro")
+    estudante = models.CharField(max_length=255, verbose_name="Nome/RA/Turma")
+    turma_opcional = models.CharField(max_length=100, blank=True, null=True, verbose_name="Turma (opcional)")
+    categoria = models.CharField(max_length=50, choices=CATEGORIA_CHOICES, verbose_name="Tipo de Registro")
+    profissional = models.ForeignKey(Usuario, on_delete=models.CASCADE, verbose_name="Responsável pelo registro")
+    registro = models.TextField(verbose_name="Registro")
+    
+    # NOVOS CAMPOS DO GOOGLE FORMS:
+    eh_ata = models.BooleanField(default=False, verbose_name="Corresponde a uma ata?")
+    link_ata = models.URLField(blank=True, null=True, verbose_name="Link da ata (caso seja sim)")
+
+    class Meta:
+        ordering = ["-data_hora"]
+        verbose_name = "Atendimento SAE"
+        verbose_name_plural = "Atendimentos SAE"
+
+    def __str__(self):
+        return f"{self.estudante} - {self.get_categoria_display()}"
 class SessaoMonitoria(models.Model):
     STATUS_EM_ANDAMENTO = "em_andamento"
     STATUS_FINALIZADA = "finalizada"

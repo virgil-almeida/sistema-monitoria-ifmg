@@ -13,10 +13,12 @@ from django.views import View
 from django.views.generic import DeleteView, FormView, ListView
 
 from core.permissions import perfil_requerido
+
 from atendimentos.forms import (
     AlunoForm,
     AtendimentoGrupoForm,
     AtendimentoIndividualForm,
+    AtendimentoSAEForm,
     AtividadePreparacaoForm,
     FinalizarSessaoForm,
     IniciarSessaoForm,
@@ -26,6 +28,7 @@ from atendimentos.models import (
     Aluno,
     AtividadePreparacao,
     Atendimento,
+    AtendimentoSAE,
     Monitor,
     ParticipanteSessao,
     PlanoSemana,
@@ -321,12 +324,47 @@ class AtividadePreparacaoView(LoginRequiredMixin, FormView):
             AtividadePreparacao.objects.filter(monitor__in=monitors)
             .select_related("monitor__turma__disciplina")
         )
+        messages.success(self.request, "Atividade de preparação registrada.")
+        return redirect("atendimentos:preparacao_list")
+
+
+@method_decorator(perfil_requerido("sae"), name="dispatch")
+class AtendimentoSAEView(LoginRequiredMixin, FormView):
+    template_name = "atendimentos/atendimento_sae.html"
+    form_class = AtendimentoSAEForm
+    success_url = reverse_lazy("atendimentos:atendimento_sae")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        q = self.request.GET.get("q", "").strip()
+        
+        # Lista os atendimentos cadastrados
+        atendimentos_qs = AtendimentoSAE.objects.select_related("profissional")
+        
+        # Filtra por nome do estudante se houver busca executada
+        if q:
+            atendimentos_qs = atendimentos_qs.filter(Q(estudante__icontains=q) | Q(registro__icontains=q))
+            
+        ctx["atendimentos"] = atendimentos_qs.order_by("-data_hora")
+        ctx["q"] = q
         return ctx
 
     def form_valid(self, form):
         form.save()
-        messages.success(self.request, "Atividade de preparação registrada.")
-        return redirect("atendimentos:preparacao_list")
+        messages.success(self.request, "Atendimento SAE registrado com sucesso.")
+        return redirect(self.success_url)
+
+@method_decorator(perfil_requerido("sae"), name="dispatch")
+class AtendimentoSAEDeleteView(LoginRequiredMixin, DeleteView):
+    model = AtendimentoSAE
+    template_name = "atendimentos/atendimento_sae_confirm_delete.html" # <- Indica o template criado
+    success_url = reverse_lazy("atendimentos:atendimento_sae")
+    perfil_requerido = "sae"
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, "Atendimento do SAE excluído com sucesso!")
+        return super().delete(request, *args, **kwargs)
+
 
 
 @method_decorator(perfil_requerido("monitor"), name="dispatch")

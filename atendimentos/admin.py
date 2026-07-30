@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo
+from atendimentos.models import Aluno, Atendimento, Monitor, TutoriaGrupo, AtendimentoSAE
 
 
 @admin.register(Monitor)
@@ -29,3 +29,8 @@ class TutoriaGrupoAdmin(admin.ModelAdmin):
     list_display = ("atendimento", "numero_participantes")
     search_fields = ("atendimento__topico",)
 
+@admin.register(AtendimentoSAE)
+class AtendimentoSAEAdmin(admin.ModelAdmin):
+    list_display = ("estudante", "categoria", "profissional", "data_hora")
+    list_filter = ("categoria", "profissional", "data_hora")
+    search_fields = ("estudante", "registro", "profissional__username")
